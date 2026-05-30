@@ -28,6 +28,33 @@ def _permission_required(permission):
     return None
 
 
+def _current_user_can_manage_target(user, action='manage'):
+    if not current_user.is_authenticated or not user or not user.role:
+        return False, 'Permission denied.'
+
+    if current_user.id == user.id:
+        if action == 'view':
+            return True, None
+        return False, 'You cannot modify your own account.'
+
+    if current_user.role.tag == 'superuser':
+        return True, None
+
+    if current_user.role.tag == 'admin':
+        if user.role.tag == 'superuser':
+            return False, 'Admin cannot manage a superuser account.'
+        return True, None
+
+    if current_user.role.tag == 'support':
+        if user.role.tag in ('admin', 'superuser'):
+            return False, 'Support cannot access admin or superuser accounts.'
+        if action != 'view' and user.role.tag == 'support':
+            return False, 'Support cannot manage fellow support accounts.'
+        return True, None
+
+    return False, 'Permission denied.'
+
+
 # ── OVERVIEW ──────────────────────────────────────────────────────
 @admin_bp.route('/overview', methods=['GET'])
 @login_required
@@ -124,6 +151,8 @@ def list_users():
     if err: return err
     query = request.args.get('search', '').strip()
     q = User.query
+    if current_user.is_support():
+        q = q.join(Role).filter(Role.tag.notin_(['admin', 'superuser']))
     if query:
         search = f'%{query}%'
         q = q.filter(
@@ -187,7 +216,12 @@ def disable_user(user_id):
     if err: return err
     if user_id == current_user.id:
         return jsonify({'success': False, 'error': "You cannot disable your own account."}), 400
-    user = db.get_or_404(User, user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found.'}), 404
+    allowed, message = _current_user_can_manage_target(user)
+    if not allowed:
+        return jsonify({'success': False, 'error': message}), 403
     user.is_active = False
     db.session.commit()
     return jsonify({'success': True, 'message': f'{user.name} disabled.'})
@@ -198,7 +232,12 @@ def disable_user(user_id):
 def enable_user(user_id):
     err = _admin_required() or _permission_required('modify_user_status')
     if err: return err
-    user = db.get_or_404(User, user_id)
+    user = db.session.get(User, user_id)
+    if not user:
+        return jsonify({'success': False, 'error': 'User not found.'}), 404
+    allowed, message = _current_user_can_manage_target(user)
+    if not allowed:
+        return jsonify({'success': False, 'error': message}), 403
     user.is_active = True
     db.session.commit()
     return jsonify({'success': True, 'message': f'{user.name} enabled.'})
@@ -214,6 +253,9 @@ def delete_user(user_id):
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({'success': False, 'error': 'User not found.'}), 404
+    allowed, message = _current_user_can_manage_target(user)
+    if not allowed:
+        return jsonify({'success': False, 'error': message}), 403
     db.session.delete(user)
     db.session.commit()
     return jsonify({'success': True, 'message': f'User {user.name} deleted.'})
@@ -224,15 +266,22 @@ def delete_user(user_id):
 def change_role(user_id):
     err = _admin_required() or _permission_required('manage_users')
     if err: return err
-    data = request.get_json() or {}
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({'success': False, 'error': 'User not found.'}), 404
+    allowed, message = _current_user_can_manage_target(user)
+    if not allowed:
+        return jsonify({'success': False, 'error': message}), 403
+    data = request.get_json() or {}
     role = Role.query.filter_by(tag=data.get('role_tag', '')).first()
     if not role:
         return jsonify({'success': False, 'error': 'Role not found.'}), 404
     if role.tag == 'superuser' and current_user.role.tag != 'superuser':
         return jsonify({'success': False, 'error': 'Only superusers can assign superuser role.'}), 403
+    if current_user.role.tag == 'support' and role.tag != 'client':
+        return jsonify({'success': False, 'error': 'Support may only assign client roles.'}), 403
+    if current_user.role.tag == 'admin' and role.tag == 'superuser':
+        return jsonify({'success': False, 'error': 'Admin cannot assign superuser role.'}), 403
     user.role_id = role.id
     db.session.commit()
     return jsonify({'success': True, 'user': user.to_dict()})
@@ -246,6 +295,9 @@ def user_transactions(user_id):
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({'success': False, 'error': 'User not found.'}), 404
+    allowed, message = _current_user_can_manage_target(user, action='view')
+    if not allowed:
+        return jsonify({'success': False, 'error': message}), 403
     txns = TransactionHistory.query.filter_by(user_id=user_id).order_by(TransactionHistory.created_at.desc()).all()
     return jsonify({'success': True, 'data': [t.to_dict() for t in txns]})
 
@@ -258,6 +310,9 @@ def user_payments(user_id):
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({'success': False, 'error': 'User not found.'}), 404
+    allowed, message = _current_user_can_manage_target(user, action='view')
+    if not allowed:
+        return jsonify({'success': False, 'error': message}), 403
     payments = Payment.query.filter_by(user_id=user_id).order_by(Payment.payment_time.desc()).all()
     return jsonify({'success': True, 'data': [p.to_dict() for p in payments]})
 

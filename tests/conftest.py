@@ -38,3 +38,30 @@ def auth_client(client):
 def admin_client(client):
     client.post('/auth/login', json={'username': 'admin', 'password': 'Admin@1234'})
     return client
+
+
+@pytest.fixture
+def support_client(client, app):
+    with app.app_context():
+        from app.models.role import Role
+        from app.models.user import User
+        from app import bcrypt
+
+        role = Role.query.filter_by(tag='support').first()
+        if not role:
+            pytest.skip('Support role not available')
+
+        existing = User.query.filter_by(username='supportuser').first()
+        if not existing:
+            pw_hash = bcrypt.generate_password_hash('SupportPass123').decode('utf-8')
+            support_user = User(
+                name='Support Staff',
+                username='supportuser',
+                email='support@test.com',
+                password=pw_hash,
+                role_id=role.id,
+            )
+            db.session.add(support_user)
+            db.session.commit()
+        client.post('/auth/login', json={'username': 'supportuser', 'password': 'SupportPass123'})
+    return client

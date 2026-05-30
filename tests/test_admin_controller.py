@@ -1,4 +1,5 @@
-from app import db
+from app import db, bcrypt
+from app.models.role import Role
 from app.models.user import User
 from app.models.subject import Subject
 from app.models.curriculum import Topic
@@ -30,11 +31,48 @@ class TestAdminController:
         res = admin_client.get('/admin-panel/users')
         assert res.status_code == 200 and len(res.get_json()['data']) >= 1
 
-    def test_disable_user(self, admin_client, auth_client, app):
+    def test_support_cannot_view_admin_or_superuser(self, support_client):
+        res = support_client.get('/admin-panel/users')
+        assert res.status_code == 200
+        data = res.get_json()['data']
+        assert all(u['role'] not in ('admin', 'superuser') for u in data)
+
+    def test_support_cannot_disable_support_or_higher(self, support_client, app):
         with app.app_context():
-            u = User.query.filter_by(username='testclient').first()
+            from app.models.user import User
+            support_role = User.query.filter_by(username='supportuser').first().role
+            other_support = User(
+                name='Other Support',
+                username='support2',
+                email='support2@test.com',
+                password=User.query.filter_by(username='supportuser').first().password,
+                role_id=support_role.id,
+            )
+            db.session.add(other_support)
+            db.session.commit()
+            support_id = other_support.id
+            superuser_id = User.query.filter_by(username='admin').first().id
+
+        res_support = support_client.post(f'/admin-panel/users/{support_id}/disable')
+        res_superuser = support_client.post(f'/admin-panel/users/{superuser_id}/disable')
+        assert res_support.status_code == 403
+        assert res_superuser.status_code == 403
+
+    def test_disable_user(self, admin_client, app):
+        with app.app_context():
+            role = Role.query.filter_by(tag='client').first()
+            u = User(
+                name='Test Teacher',
+                username='testclient',
+                email='teacher@test.com',
+                password=bcrypt.generate_password_hash('TestPass1234').decode('utf-8'),
+                role_id=role.id,
+            )
+            db.session.add(u)
+            db.session.commit()
             uid = u.id
-        admin_client.post(f'/admin-panel/users/{uid}/disable')
+        res = admin_client.post(f'/admin-panel/users/{uid}/disable')
+        assert res.status_code == 200
         with app.app_context():
             db.session.expire_all()
             assert db.session.get(User, uid).is_active is False

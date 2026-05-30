@@ -15,6 +15,13 @@ class Role(db.Model):
     # Relationships
     users = db.relationship('User', backref='role', lazy='dynamic')
 
+    ROLE_HIERARCHY = {
+        'client': 0,
+        'support': 1,
+        'admin': 2,
+        'superuser': 3,
+    }
+
     # ── Permissions map ────────────────────────────────────────────
     PERMISSIONS = {
         'superuser': ['manage_users', 'manage_roles', 'manage_content',
@@ -30,6 +37,9 @@ class Role(db.Model):
 
     def can(self, permission: str) -> bool:
         return permission in self.PERMISSIONS.get(self.tag, [])
+
+    def rank(self) -> int:
+        return self.ROLE_HIERARCHY.get(self.tag, 0)
 
     @classmethod
     def count_by_tag(cls, tag: str) -> int:

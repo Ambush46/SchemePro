@@ -432,6 +432,9 @@ async function switchContentTab(tab, el) {
   el?.classList.add('active');
   const c = document.getElementById('content-tab');
 
+  // small helper: keep selected subject list consistent when switching between tabs
+
+
   if (tab === 'levels') {
     const res = await API.get('/api/v1/levels');
     c.innerHTML = `<div class="card">
@@ -559,20 +562,50 @@ async function switchContentTab(tab, el) {
   }
 }
 
-async function loadSubjectsForAdminTopics(levelId) {
-  const subjRes = await API.get(`/api/v1/subjects?level_id=${levelId}`);
-  const sel = document.getElementById('new-topic-subj');
-  if (!sel) return;
-  sel.innerHTML = (subjRes.data || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('') || '<option value="">No subjects</option>';
+async function loadSublevelsForTopicsTab(levelId) {
+  const levelSel = document.getElementById('new-topic-level');
+  const sublevelSel = document.getElementById('new-topic-sublevel');
+  if (!sublevelSel) return;
 
-  // Reload topics for selected subject.
-  const first = (subjRes.data || [])[0];
-  if (first) loadTopicsForAdmin(first.id);
-  else {
-    const c = document.getElementById('existing-topics');
-    if (c) c.innerHTML = '<p class="text-muted text-sm">No subjects found for this level.</p>';
+  sublevelSel.innerHTML = '<option value="">All sub-levels</option>';
+
+  // Use /api/v1/levels which includes sublevels inside each level.to_dict().
+  try {
+    const levelsRes = await API.get('/api/v1/levels');
+    const level = (levelsRes.data || []).find(l => String(l.id) === String(levelId));
+    const subs = level?.sublevels || [];
+
+    sublevelSel.innerHTML = [
+      '<option value="">All sub-levels</option>',
+      ...subs.map(s => `<option value="${s.id}">${s.name}</option>`)
+    ].join('');
+  } catch (e) {
+    // Keep default.
   }
 }
+
+async function loadSubjectsForAdminTopics(levelId, sublevelId = '') {
+  const sel = document.getElementById('new-topic-subj');
+  if (!sel) return;
+
+  let url = `/api/v1/subjects?level_id=${levelId}`;
+  if (sublevelId) url += `&sublevel_id=${sublevelId}`;
+
+  const subjRes = await API.get(url);
+
+  const subjects = subjRes.data || [];
+  sel.innerHTML = subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('') || '<option value="">No subjects</option>';
+
+  // Reload topics for selected subject.
+  const first = subjects[0];
+  if (first) {
+    loadTopicsForAdmin(first.id);
+  } else {
+    const c = document.getElementById('existing-topics');
+    if (c) c.innerHTML = '<p class="text-muted text-sm">No subjects found for this selection.</p>';
+  }
+}
+
 
 async function loadSubjectsForST(levelId) {
   const subjRes = await API.get(`/api/v1/subjects?level_id=${levelId}`);
