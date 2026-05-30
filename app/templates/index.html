@@ -117,13 +117,11 @@ async function loadLevels() {
     const hdrs = { lower_primary:'lhdr-primary', upper_primary:'lhdr-primary', junior_cbc:'lhdr-junior', senior:'lhdr-senior' };
     const labels = { lower_primary:'📚 Lower Primary', upper_primary:'📚 Upper Primary (844)', junior_cbc:'🌿 Junior School (CBC) Grade 7–9', senior:'🎓 Senior School (844) Form 1–4' };
 
-    // Get subjects too
-    const subjData = await API.get('/api/v1/subjects');
-    const allSubjects = subjData.data;
-
-    data.data.forEach(level => {
-      const subjects = allSubjects.filter(s => s.level_id === level.id);
-      if (!subjects.length) return;
+    // Fetch subjects per level (includes sublevel and curriculum_system)
+    for (const level of data.data) {
+      const subjRes = await API.get(`/api/v1/subjects?level_id=${level.id}`);
+      const subjects = subjRes.data || [];
+      if (!subjects.length) continue;
 
       const div = document.createElement('div');
       div.className = 'level-card';
@@ -131,12 +129,12 @@ async function loadLevels() {
         <div class="lhdr ${hdrs[level.tag] || 'lhdr-primary'}">${labels[level.tag] || level.name}</div>
         <div class="subj-list">
           ${subjects.map(s => `
-            <button class="subj-btn" onclick="requireAuth('/app?subject=${s.id}&name=${encodeURIComponent(s.name)}&system=${s.curriculum_system}')">
-              ${s.name}
+            <button class="subj-btn" onclick="requireAuth('/app?subject=${s.id}&name=${encodeURIComponent(s.name)}&system=${s.curriculum_system}&sublevel=${s.sublevel_id || ''}')">
+              ${s.name}${s.sublevel_name ? ' — ' + s.sublevel_name : ''}
             </button>`).join('')}
         </div>`;
       container.appendChild(div);
-    });
+    }
   } catch (e) {
     document.getElementById('levels-container').innerHTML =
       '<div class="alert alert-error">Failed to load subjects. Please refresh.</div>';
