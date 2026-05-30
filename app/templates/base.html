@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+{% block meta %}
+<meta name="description" content="SchemePro — AI-powered Kenya Scheme of Work Generator. KICD aligned, supports 8-4-4 and CBC curriculum.">
+<meta name="keywords" content="scheme of work, Kenya, KICD, CBC, 844, curriculum, teacher">
+<meta property="og:title" content="SchemePro — Kenya Scheme of Work Generator">
+<meta property="og:description" content="Generate KICD-compliant schemes of work in seconds.">
+{% endblock %}
+<title>{% block title %}SchemePro{% endblock %} | Kenya Scheme of Work Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+{% include 'partials/base_css.html' %}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+{% include 'partials/navbar.html' %}
+<script>
+{% include 'partials/base_js.html' %}
+</script>
+{% block content %}{% endblock %}
+{% include 'partials/auth_modals.html' %}
+{% include 'partials/topup_modal.html' %}
+{% block scripts %}{% endblock %}
+</body>
+</html>

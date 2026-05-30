@@ -1,0 +1,649 @@
+{% extends 'base.html' %}
+{% block title %}Generate{% endblock %}
+
+{% block head %}
+<style>
+.app-layout{display:flex;min-height:calc(100vh - 60px)}
+.sidebar{width:220px;border-right:1px solid var(--gray-200);background:var(--gray-50);padding:1rem;flex-shrink:0;overflow-y:auto}
+.sidebar-heading{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--gray-400);padding:0 8px;margin:12px 0 6px}
+.sidebar-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--radius);font-size:13px;color:var(--gray-600);cursor:pointer;border:none;background:none;width:100%;text-align:left;font-family:inherit;transition:all .12s}
+.sidebar-item:hover{background:var(--blue-50);color:var(--blue-700)}
+.sidebar-item.active{background:var(--blue-100);color:var(--blue-800);font-weight:600}
+.sidebar-dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
+.app-main{flex:1;overflow-y:auto;padding:2rem;max-height:calc(100vh - 60px)}
+/* Step bar */
+.step-bar{display:flex;border:1px solid var(--gray-200);border-radius:var(--radius);overflow:hidden;margin-bottom:2rem}
+.step{flex:1;padding:10px 8px;text-align:center;font-size:12px;font-weight:500;border-right:1px solid var(--gray-200);background:#fff;color:var(--gray-400);transition:all .15s}
+.step:last-child{border-right:none}
+.step.active{background:var(--blue-600);color:#fff}
+.step.done{background:var(--blue-50);color:var(--blue-700);cursor:pointer}
+/* Subject header */
+.subj-header{display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap}
+.subj-header h2{font-size:18px;font-weight:700}
+/* Wallet strip */
+.wallet-strip{display:flex;align-items:center;gap:12px;background:var(--blue-50);border:1px solid var(--blue-200);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1.25rem}
+.wallet-amount{font-size:22px;font-weight:700;color:var(--blue-800)}
+.wallet-label{font-size:12px;color:var(--blue-600);font-weight:500}
+/* Break rows */
+.break-row{display:grid;grid-template-columns:1.4fr .6fr .7fr .7fr auto;align-items:end;gap:8px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px}
+.break-row label{font-size:11px;color:var(--gray-500);display:block;margin-bottom:3px;font-weight:500}
+.break-row select,.break-row input{font-size:12px;padding:5px 8px;width:100%;border:1px solid var(--gray-300);border-radius:5px;font-family:inherit}
+/* SOW Table */
+.sow-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--gray-200)}
+.sow-table{width:100%;border-collapse:collapse;font-size:11.5px;min-width:900px}
+.sow-table th{background:var(--blue-800);color:#fff;padding:8px 10px;text-align:left;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.sow-table td{padding:7px 10px;border-bottom:1px solid var(--gray-200);vertical-align:top;color:var(--gray-700)}
+.sow-table tr:last-child td{border-bottom:none}
+.sow-table tr:nth-child(even) td{background:var(--gray-50)}
+.sow-table td.wk{font-weight:700;color:var(--blue-800);font-size:13px}
+.sow-table tr.is-break td{background:var(--amber-50)!important;color:var(--amber-600);font-style:italic}
+/* Download cards */
+.dl-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-top:1rem}
+.dl-card{border:1px solid var(--gray-200);border-radius:var(--radius-lg);padding:1.25rem;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .15s;text-align:center}
+.dl-card:hover{border-color:var(--blue-500);background:var(--blue-50);box-shadow:var(--shadow-md)}
+.dl-card.disabled{opacity:.5;pointer-events:none}
+.dl-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px}
+.dl-icon.pdf{background:var(--red-50)}
+.dl-icon.docx{background:var(--blue-50)}
+.dl-icon.zip{background:#F5F3FF}
+.dl-name{font-size:14px;font-weight:600}
+.dl-price{font-size:12px;color:var(--gray-500)}
+.dl-desc{font-size:11px;color:var(--gray-400)}
+/* Generation progress */
+.gen-step-list{margin-top:1rem;display:flex;flex-direction:column;gap:6px;text-align:left;max-width:320px}
+.gen-step-item{font-size:12px;color:var(--gray-400);display:flex;align-items:center;gap:8px}
+.gen-step-item.done{color:var(--green-600)}
+.gen-step-item.running .gs-dot{animation:pulse 1s infinite}
+.gs-dot{width:8px;height:8px;border-radius:50%;background:var(--gray-200);flex-shrink:0}
+.gen-step-item.done .gs-dot{background:var(--green-600)}
+.gen-step-item.running .gs-dot{background:var(--blue-500)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.empty-state{text-align:center;padding:5rem 2rem;color:var(--gray-400)}
+.empty-state-icon{font-size:52px;display:block;margin-bottom:1rem;opacity:.3}
+
+@media(max-width:900px){
+  .app-layout{flex-direction:column}
+  .sidebar{width:100%;border-right:none;border-bottom:1px solid var(--gray-200);padding:1rem}
+  .app-main{padding:1rem;max-height:none}
+  .step-bar{flex-direction:column}
+  .break-row{grid-template-columns:1fr;align-items:stretch}
+  .break-row label{margin-bottom:6px}
+  .sow-table{min-width:unset;font-size:10.5px}
+  .dl-grid{grid-template-columns:1fr}
+  .wallet-strip{flex-direction:column;align-items:flex-start}
+  .sow-wrap{overflow-x:auto}
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="app-layout">
+  <!-- SIDEBAR: subjects from DB -->
+  <div class="sidebar" id="spa-sidebar">
+    <div style="font-size:12px;color:var(--gray-400);padding:8px">Loading subjects…</div>
+  </div>
+
+  <!-- MAIN CONTENT AREA -->
+  <div class="app-main" id="app-main">
+    <div class="empty-state">
+      <span class="empty-state-icon">📄</span>
+      <div style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--gray-700)">Select a subject to begin</div>
+      <div class="text-sm">Choose any subject from the sidebar to start generating</div>
+    </div>
+  </div>
+</div>
+
+{% if not current_user.is_authenticated %}
+<script>openModal('login-modal');</script>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ═══════════════════════════════════════════════════════════════
+// SPA STATE
+// ═══════════════════════════════════════════════════════════════
+const IS_AUTHENTICATED = {{ 'true' if current_user.is_authenticated else 'false' }};
+
+function getDefaultParams() {
+  return {
+    grade: '',
+    term: 1,
+    lessonsPerWeek: 5,
+    weeks: 12,
+    startWeek: 1,
+    doubleLesson: '',
+    startTopicId: '',
+    startSubtopicId: '',
+    endTopicId: '',
+    endSubtopicId: '',
+    startTopicName: '',
+    endTopicName: '',
+    startSubtopicName: '',
+    endSubtopicName: '',
+  };
+}
+
+const SPA = {
+  subject: null,
+  step: 0,
+  params: getDefaultParams(),
+  breaks: [],
+  topics: [],
+  generated: null,
+  references: [],
+  docId: null,
+  pricing: {},
+  walletBalance: {{ '%.2f'|format(current_user.wallet_balance) if current_user.is_authenticated else 0 }},
+  draftRestored: false,
+};
+
+let saveDraftTimer = null;
+
+function buildDraftBody() {
+  return {
+    subject_id: SPA.subject?.id || null,
+    step: SPA.step,
+    params: SPA.params,
+    breaks: SPA.breaks,
+    generated: SPA.generated,
+    references: SPA.references,
+    doc_id: SPA.docId,
+  };
+}
+
+async function saveDraft() {
+  if (!IS_AUTHENTICATED) return;
+  try {
+    await API.post('/scheme/drafts', buildDraftBody());
+  } catch (e) {
+    console.warn('Unable to save scheme draft:', e.message);
+  }
+}
+
+function queueDraftSave() {
+  if (!IS_AUTHENTICATED) return;
+  clearTimeout(saveDraftTimer);
+  saveDraftTimer = setTimeout(() => saveDraft(), 250);
+}
+
+async function loadSavedDraft() {
+  if (!IS_AUTHENTICATED) return null;
+  try {
+    const res = await API.get('/scheme/drafts');
+    return res.draft;
+  } catch (e) {
+    return null;
+  }
+}
+
+function applyDraft(draft) {
+  if (!draft || !draft.payload) return;
+  const payload = draft.payload || {};
+  SPA.step = payload.step || 1;
+  SPA.params = { ...getDefaultParams(), ...(payload.params || {}) };
+  SPA.breaks = payload.breaks || [];
+  SPA.generated = payload.generated || null;
+  SPA.references = payload.references || [];
+  SPA.docId = payload.doc_id || null;
+  SPA.draftRestored = true;
+}
+
+function clearDraftRestoreNotice() {
+  SPA.draftRestored = false;
+}
+
+// ─── Load sidebar ──────────────────────────────────────────────
+async function loadSidebar() {
+  const sidebar = document.getElementById('spa-sidebar');
+  const [levelsRes, subjRes] = await Promise.all([
+    API.get('/api/v1/levels'),
+    API.get('/api/v1/subjects'),
+  ]);
+  const levels = levelsRes.data;
+  const subjects = subjRes.data;
+  const hdgMap = { lower_primary:'Lower Primary', upper_primary:'Upper Primary (844)', junior_cbc:'Junior School (CBC)', senior:'Senior School (844)' };
+  let html = '';
+  levels.forEach(l => {
+    const ls = subjects.filter(s => s.level_id === l.id);
+    if (!ls.length) return;
+    html += `<div class="sidebar-heading">${hdgMap[l.tag] || l.name}</div>`;
+    ls.forEach(s => {
+      html += `<button class="sidebar-item" data-id="${s.id}" onclick="selectSubject(${JSON.stringify(s).replace(/"/g,'&quot;')},this)">
+        <span class="sidebar-dot"></span>${s.name}
+      </button>`;
+    });
+  });
+  html += `<div class="sidebar-heading" style="margin-top:16px">Account</div>
+    <button class="sidebar-item" onclick="openTopupModal()">💳 Top Up Wallet</button>
+    {% if current_user.is_authenticated and current_user.is_admin() %}
+    <button class="sidebar-item" onclick="location.href='/admin-panel'">⚙ Admin Panel</button>
+    {% endif %}`;
+  sidebar.innerHTML = html;
+
+  const draft = await loadSavedDraft();
+  if (draft && draft.subject_id) {
+    const savedSubject = subjects.find(s => String(s.id) === String(draft.subject_id));
+    if (savedSubject) {
+      const btn = sidebar.querySelector(`[data-id="${savedSubject.id}"]`);
+      await selectSubject(savedSubject, btn, draft);
+      return;
+    }
+  }
+
+  const urlParams = new URLSearchParams(location.search);
+  const subjectId = urlParams.get('subject');
+  if (subjectId) {
+    const found = subjects.find(s => String(s.id) === subjectId);
+    if (found) {
+      const btn = sidebar.querySelector(`[data-id="${found.id}"]`);
+      await selectSubject(found, btn);
+    }
+  }
+}
+
+// ─── Subject selection ────────────────────────────────────────
+async function selectSubject(subj, el, draft = null) {
+  SPA.subject = subj;
+  SPA.step = 1;
+  SPA.generated = null;
+  SPA.references = [];
+  SPA.docId = null;
+  SPA.breaks = [];
+  SPA.params = getDefaultParams();
+  if (draft) {
+    applyDraft(draft);
+    showNotification(`Draft restored for ${subj.name}. You can continue from step ${SPA.step}.`, 'info', 5000);
+  } else {
+    clearDraftRestoreNotice();
+  }
+
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+  el?.classList.add('active');
+
+  try {
+    const res = await API.get(`/api/v1/topics?subject_id=${subj.id}`);
+    SPA.topics = res.data;
+  } catch(e) {
+    SPA.topics = [];
+  }
+
+  try {
+    const pr = await API.get('/api/v1/pricing');
+    SPA.pricing = pr.data;
+  } catch(e) {}
+
+  renderStep(SPA.step);
+  queueDraftSave();
+}
+
+// ─── Step Bar ────────────────────────────────────────────────
+function stepBar() {
+  return ['Parameters','Term Activities','Generate','Download'].map((s,i) => {
+    const n = i+1, cls = SPA.step===n?'active':SPA.step>n?'done':'';
+    return `<div class="step ${cls}" onclick="${SPA.step>n?`renderStep(${n})`:''}">${s}</div>`;
+  }).join('');
+}
+
+function subjHeader() {
+  return `<div class="subj-header">
+    <h2>${SPA.subject.name}</h2>
+    <span class="badge badge-blue">${SPA.subject.curriculum_system}</span>
+    <span class="text-sm text-muted">${SPA.subject.level_name}</span>
+  </div>`;
+}
+
+// ─── STEP 1: Parameters ──────────────────────────────────────
+function renderStep(n) {
+  SPA.step = n;
+  const main = document.getElementById('app-main');
+  if (!SPA.subject) return;
+  const isCBC = SPA.subject.curriculum_system === 'CBC';
+  const gradeOpts = isCBC
+    ? ['Grade 7','Grade 8','Grade 9']
+    : SPA.subject.level_name?.includes('Primary')
+      ? ['Std 1','Std 2','Std 3','Std 4','Std 5','Std 6','Std 7','Std 8']
+      : ['Form 1','Form 2','Form 3','Form 4'];
+
+  if (n === 1) {
+    const topicOpts = SPA.topics.map(t => `<option value="${t.id}" ${String(t.id)===String(SPA.params.startTopicId)?'selected':''}>${t.name}</option>`).join('');
+    const endTopicOpts = SPA.topics.map(t => `<option value="${t.id}" ${String(t.id)===String(SPA.params.endTopicId)?'selected':''}>${t.name}</option>`).join('');
+    const draftBanner = SPA.draftRestored ? `<div class="alert alert-info" style="margin-bottom:1rem">Draft restored successfully. Review the saved details and continue where you left off.</div>` : '';
+    main.innerHTML = `<div class="step-bar">${stepBar()}</div>${subjHeader()}${draftBanner}
+    <div class="card">
+      <div class="card-title"><div class="card-icon">📅</div>Class &amp; Schedule Parameters</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Class / Grade</label>
+          <select class="form-input form-select" id="p-grade" onchange="queueDraftSave()">
+            ${gradeOpts.map(g=>`<option ${g===SPA.params.grade?'selected':''}>${g}</option>`).join('')}
+          </select></div>
+        <div class="form-group"><label class="form-label">Term</label>
+          <select class="form-input form-select" id="p-term" onchange="queueDraftSave()">
+            <option value="1" ${SPA.params.term===1?'selected':''}>Term 1</option>
+            <option value="2" ${SPA.params.term===2?'selected':''}>Term 2</option>
+            <option value="3" ${SPA.params.term===3?'selected':''}>Term 3</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Lessons per week</label>
+          <input class="form-input" type="number" id="p-lpw" value="${SPA.params.lessonsPerWeek||5}" min="1" max="10" onchange="queueDraftSave()"></div>
+        <div class="form-group"><label class="form-label">Teaching weeks</label>
+          <input class="form-input" type="number" id="p-weeks" value="${SPA.params.weeks||12}" min="4" max="20" onchange="queueDraftSave()"></div>
+        <div class="form-group"><label class="form-label">Learning starts from week</label>
+          <input class="form-input" type="number" id="p-startw" value="${SPA.params.startWeek||1}" min="1" max="4" onchange="queueDraftSave()"></div>
+        <div class="form-group"><label class="form-label">Double lesson (which lesson in the week?)</label>
+          <select class="form-input form-select" id="p-double" onchange="queueDraftSave()">
+            <option value="">No double lesson</option>
+            ${[1,2,3,4,5,6,7,8,9,10].map(i=>`<option value="Lesson ${i} &amp; ${i+1}" ${SPA.params.doubleLesson===`Lesson ${i} & ${i+1}`?'selected':''}>Lesson ${i} &amp; ${i+1}</option>`).join('')}
+          </select></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="card-icon">📖</div>Topic Coverage Range</div>
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Start from ${isCBC?'Strand':'Topic'}</label>
+          <select class="form-input form-select" id="p-start-topic" onchange="loadSubtopics('start',this.value); queueDraftSave()">${topicOpts}</select></div>
+        <div class="form-group"><label class="form-label">End at ${isCBC?'Strand':'Topic'}</label>
+          <select class="form-input form-select" id="p-end-topic" onchange="loadSubtopics('end',this.value); queueDraftSave()">${endTopicOpts}</select></div>
+        <div class="form-group"><label class="form-label">Start from ${isCBC?'Sub-strand':'Sub-topic'}</label>
+          <select class="form-input form-select" id="p-start-subtopic" onchange="queueDraftSave()"><option>Loading…</option></select></div>
+        <div class="form-group"><label class="form-label">End at ${isCBC?'Sub-strand':'Sub-topic'}</label>
+          <select class="form-input form-select" id="p-end-subtopic" onchange="queueDraftSave()"><option>Loading…</option></select></div>
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="saveStep1()">Continue to Term Activities →</button>
+    </div>`;
+
+    if (SPA.topics.length) {
+      loadSubtopics('start', SPA.params.startTopicId || SPA.topics[0].id, SPA.params.startSubtopicId);
+      loadSubtopics('end', SPA.params.endTopicId || SPA.topics[SPA.topics.length - 1].id, SPA.params.endSubtopicId);
+      document.getElementById('p-start-topic').value = SPA.params.startTopicId || SPA.topics[0].id;
+      document.getElementById('p-end-topic').value = SPA.params.endTopicId || SPA.topics[SPA.topics.length - 1].id;
+    }
+  }
+
+  if (n === 2) {
+    main.innerHTML = `<div class="step-bar">${stepBar()}</div>${subjHeader()}
+    <div class="card">
+      <div class="card-title"><div class="card-icon">⏸</div>Term Interruptions &amp; Activities</div>
+      <p class="text-sm text-muted" style="margin-bottom:1rem">Add midterms, CATs, exams, public holidays, sports days, or any breaks affecting teaching.</p>
+      <div id="breaks-list"></div>
+      <button class="btn btn-sm" style="margin-top:8px" onclick="addBreak()">+ Add break / activity</button>
+    </div>
+    <div class="action-row">
+      <button class="btn" onclick="renderStep(1)">← Back</button>
+      <button class="btn btn-primary" onclick="renderStep(3)">Review &amp; Generate →</button>
+    </div>`;
+    renderBreaks();
+  }
+
+  if (n === 3) {
+    const p = SPA.params;
+    main.innerHTML = `<div class="step-bar">${stepBar()}</div>${subjHeader()}
+    <div class="card">
+      <div class="card-title"><div class="card-icon">⚡</div>Ready to Generate</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem 2rem;margin-bottom:1rem;font-size:14px">
+        <div><span class="text-muted text-sm">Subject</span><br><strong>${SPA.subject.name}</strong></div>
+        <div><span class="text-muted text-sm">Class</span><br><strong>${p.grade} — Term ${p.term}</strong></div>
+        <div><span class="text-muted text-sm">Schedule</span><br><strong>${p.lessonsPerWeek} lessons/week × ${p.weeks} weeks</strong></div>
+        <div><span class="text-muted text-sm">Planned breaks</span><br><strong>${SPA.breaks.length} interruption(s)</strong></div>
+        <div><span class="text-muted text-sm">From ${isCBC?'Strand':'Topic'}</span><br><strong>${p.startTopicName||'—'}</strong></div>
+        <div><span class="text-muted text-sm">To ${isCBC?'Strand':'Topic'}</span><br><strong>${p.endTopicName||'—'}</strong></div>
+        ${p.doubleLesson?`<div class="form-full"><span class="text-muted text-sm">Double lesson</span><br><strong>${p.doubleLesson} each week</strong></div>`:''}
+      </div>
+      <div class="action-row" style="border:none;padding:0;margin:0">
+        <button class="btn" onclick="renderStep(2)">← Back</button>
+        <button class="btn btn-primary btn-lg" onclick="runGeneration()">⚡ Generate Scheme of Work</button>
+      </div>
+    </div>`;
+  }
+
+  if (n === 4) {
+    const bal = SPA.walletBalance;
+    const p = SPA.pricing;
+    const canPdf = bal >= (p.pdf?.price||30);
+    const canDocx = bal >= (p.docx?.price||50);
+    const canZip = bal >= (p.zip?.price||70);
+    main.innerHTML = `<div class="step-bar">${stepBar()}</div>${subjHeader()}
+    <div class="wallet-strip">
+      💳 <div><div class="wallet-label">Wallet Balance</div><div class="wallet-amount">KES ${bal.toFixed(2)}</div></div>
+      <button class="btn btn-sm btn-outline" style="margin-left:auto" onclick="openTopupModal()">Top Up</button>
+    </div>
+    ${SPA.generated ? `
+    <div class="card">
+      <div class="card-title"><div class="card-icon">📊</div>Generated Scheme — Preview
+        <span class="badge badge-green" style="margin-left:4px">Ready</span></div>
+      <div class="sow-wrap">${buildTable()}</div>
+    </div>
+    <div class="card">
+      <div class="card-title"><div class="card-icon">📥</div>Download Document</div>
+      ${!canPdf && !canDocx && !canZip ? '<div class="alert alert-error">Insufficient wallet balance. Please top up to download.</div>' : ''}
+      <div class="dl-grid">
+        <div class="dl-card ${canPdf?'':'disabled'}" onclick="${canPdf?'downloadDoc(\'pdf\')':''}">
+          <div class="dl-icon pdf">📄</div>
+          <div class="dl-name">PDF Document</div>
+          <div class="dl-price">KES ${(p.pdf?.price||30).toFixed(0)}</div>
+          <div class="dl-desc">Print-ready format</div>
+        </div>
+        <div class="dl-card ${canDocx?'':'disabled'}" onclick="${canDocx?'downloadDoc(\'docx\')':''}">
+          <div class="dl-icon docx">📝</div>
+          <div class="dl-name">Word Document</div>
+          <div class="dl-price">KES ${(p.docx?.price||50).toFixed(0)}</div>
+          <div class="dl-desc">Editable .docx file</div>
+        </div>
+        <div class="dl-card ${canZip?'':'disabled'}" onclick="${canZip?'downloadDoc(\'zip\')':''}">
+          <div class="dl-icon zip">🗜</div>
+          <div class="dl-name">ZIP Bundle</div>
+          <div class="dl-price">KES ${(p.zip?.price||70).toFixed(0)}</div>
+          <div class="dl-desc">PDF + DOCX in one zip</div>
+        </div>
+      </div>
+    </div>` : '<div class="alert alert-info">No scheme generated yet. Go back to Generate.</div>'}`;
+  }
+}
+
+// ─── Subtopics loader ────────────────────────────────────────
+async function loadSubtopics(which, topicId, selectedId = null) {
+  const sel = document.getElementById(`p-${which}-subtopic`);
+  if (!sel) return;
+  sel.innerHTML = '<option>Loading…</option>';
+  try {
+    const res = await API.get(`/api/v1/subtopics?topic_id=${topicId}`);
+    const options = res.data.map(st => `<option value="${st.id}" ${String(selectedId) === String(st.id) ? 'selected' : ''}>${st.name}</option>`).join('') || '<option>No subtopics found</option>';
+    sel.innerHTML = options;
+  } catch(e) { sel.innerHTML = '<option>Error loading</option>'; }
+}
+
+// ─── Save Step 1 ─────────────────────────────────────────────
+function saveStep1() {
+  const startTopicSel = document.getElementById('p-start-topic');
+  const endTopicSel = document.getElementById('p-end-topic');
+  const startSubSel = document.getElementById('p-start-subtopic');
+  const endSubSel = document.getElementById('p-end-subtopic');
+  SPA.params = {
+    grade: document.getElementById('p-grade').value,
+    term: parseInt(document.getElementById('p-term').value),
+    lessonsPerWeek: parseInt(document.getElementById('p-lpw').value),
+    weeks: parseInt(document.getElementById('p-weeks').value),
+    startWeek: parseInt(document.getElementById('p-startw').value),
+    doubleLesson: document.getElementById('p-double').value,
+    startTopicId: startTopicSel?.value,
+    startTopicName: startTopicSel?.options[startTopicSel.selectedIndex]?.text,
+    endTopicId: endTopicSel?.value,
+    endTopicName: endTopicSel?.options[endTopicSel.selectedIndex]?.text,
+    startSubtopicId: startSubSel?.value,
+    startSubtopicName: startSubSel?.options[startSubSel.selectedIndex]?.text,
+    endSubtopicId: endSubSel?.value,
+    endSubtopicName: endSubSel?.options[endSubSel.selectedIndex]?.text,
+  };
+  queueDraftSave();
+  renderStep(2);
+}
+
+// ─── Breaks ──────────────────────────────────────────────────
+function addBreak() {
+  SPA.breaks.push({ type:'Midterm', week: Math.ceil(SPA.params.weeks/2)||6, wholeWeek:true, startLesson:1 });
+  renderBreaks();
+  queueDraftSave();
+}
+function removeBreak(i) { SPA.breaks.splice(i,1); renderBreaks(); queueDraftSave(); }
+function renderBreaks() {
+  const c = document.getElementById('breaks-list');
+  if (!c) return;
+  if (!SPA.breaks.length) { c.innerHTML = '<p class="text-sm text-muted">No breaks added.</p>'; return; }
+  const lpw = SPA.params.lessonsPerWeek || 5;
+  const weeks = SPA.params.weeks || 12;
+  c.innerHTML = SPA.breaks.map((b,i) => `
+  <div class="break-row">
+    <div><label>Type</label>
+      <select onchange="SPA.breaks[${i}].type=this.value; queueDraftSave()">
+        ${['Midterm','CAT / Test','Final Exam','Public Holiday','Sports Day','Prize Giving','Other']
+          .map(t=>`<option ${b.type===t?'selected':''}>${t}</option>`).join('')}
+      </select></div>
+    <div><label>Week</label>
+      <input type="number" value="${b.week}" min="1" max="${weeks}" onchange="SPA.breaks[${i}].week=+this.value; queueDraftSave()"></div>
+    <div><label>Whole week?</label>
+      <select onchange="SPA.breaks[${i}].wholeWeek=this.value==='Yes'; renderBreaks(); queueDraftSave()">
+        <option ${b.wholeWeek?'selected':''}>Yes</option>
+        <option ${!b.wholeWeek?'selected':''}>No</option>
+      </select></div>
+    <div><label>From lesson</label>
+      <input type="number" value="${b.startLesson}" min="1" max="${lpw}"
+        ${b.wholeWeek?'disabled':''} onchange="SPA.breaks[${i}].startLesson=+this.value; queueDraftSave()"></div>
+    <button class="btn btn-sm btn-danger" onclick="removeBreak(${i})">✕</button>
+  </div>`).join('');
+}
+
+// ─── Generation (backend engine, no external API) ─────────────
+async function runGeneration() {
+  const main = document.getElementById('app-main');
+  main.innerHTML = `<div class="spinner-wrap">
+    <div class="spinner"></div>
+    <div style="font-size:15px;font-weight:600;color:var(--gray-700)">Building Scheme of Work…</div>
+    <div class="text-sm text-muted">Reading curriculum database and laying out weekly plan</div>
+    <div class="gen-step-list">
+      <div class="gen-step-item done"><span class="gs-dot"></span>Reading curriculum parameters</div>
+      <div class="gen-step-item running" id="gs2"><span class="gs-dot"></span>Fetching topics and subtopics from database</div>
+      <div class="gen-step-item" id="gs3"><span class="gs-dot"></span>Mapping subtopics across teaching weeks</div>
+      <div class="gen-step-item" id="gs4"><span class="gs-dot"></span>Applying break schedule and double lessons</div>
+    </div>
+  </div>`;
+
+  const advance = (done, next) => {
+    const d=document.getElementById(done); const n=document.getElementById(next);
+    if(d){d.classList.remove('running');d.classList.add('done');}
+    if(n) n.classList.add('running');
+  };
+  setTimeout(()=>advance('gs2','gs3'), 400);
+  setTimeout(()=>advance('gs3','gs4'), 800);
+
+  const p = SPA.params;
+  try {
+    const res = await API.post('/scheme/generate', {
+      subject_id: SPA.subject.id,
+      grade: p.grade,
+      term: p.term,
+      lessons_per_week: p.lessonsPerWeek,
+      weeks: p.weeks,
+      start_week: p.startWeek,
+      double_lesson: p.doubleLesson,
+      start_topic_id: p.startTopicId ? parseInt(p.startTopicId) : null,
+      start_subtopic_id: p.startSubtopicId ? parseInt(p.startSubtopicId) : null,
+      end_topic_id: p.endTopicId ? parseInt(p.endTopicId) : null,
+      end_subtopic_id: p.endSubtopicId ? parseInt(p.endSubtopicId) : null,
+      breaks: SPA.breaks,
+    });
+    SPA.generated = res.rows;
+    SPA.docId = res.doc_id;
+    SPA.references = res.references || [];
+    await saveDraft();
+    renderStep(4);
+  } catch(e) {
+    main.innerHTML = `<div class="card">
+      <div class="alert alert-error">${e.message}</div>
+      <div class="action-row"><button class="btn" onclick="renderStep(3)">← Back</button></div>
+    </div>`;
+  }
+}
+
+// ─── Table builder ────────────────────────────────────────────
+function buildTable() {
+  if (!SPA.generated) return '';
+  const isCBC = SPA.subject.curriculum_system === 'CBC';
+  const headers = isCBC
+    ? ['Wk','Lsn','Strand','Sub-Strand','Learning Outcomes','Key Inquiry Q','Learning Experiences','Resources','Assessment','Refl']
+    : ['Wk','Lsn','Topic','Sub-Topic','Objectives','L/Activities','L/T Aids','Reference','Remarks'];
+  const keys = isCBC
+    ? ['wk','lsn','strand','substrand','outcomes','inquiry','experiences','resources','assessment','refl']
+    : ['wk','lsn','topic','subtopic','objectives','activities','aids','reference','remarks'];
+  const rows = SPA.generated.map(r => {
+    const isBreak = String(r.topic||r.strand||'').toUpperCase().includes('BREAK');
+    return `<tr class="${isBreak?'is-break':''}">${keys.map((k,i)=>`<td class="${i===0?'wk':''}">${r[k]||''}</td>`).join('')}</tr>`;
+  }).join('');
+  return `<table class="sow-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ─── Download ─────────────────────────────────────────────────
+async function downloadDoc(docType) {
+  if (!SPA.generated) return;
+  const p = SPA.params;
+  try {
+    const res = await fetch('/scheme/download', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({
+        doc_id: SPA.docId,
+        doc_type: docType,
+        rows: SPA.generated,
+        meta: {
+          subject: SPA.subject.name,
+          grade: p.grade,
+          term: p.term,
+          curriculum_system: SPA.subject.curriculum_system,
+          references: SPA.references || [],
+        },
+      }),
+    });
+
+    if (res.status === 402) {
+      const err = await res.json();
+      if (err.error === 'insufficient_balance') {
+        openTopupModal();
+        return;
+      }
+    }
+    if (!res.ok) {
+      const err = await res.json();
+      showNotification('Download failed: ' + err.error, 'error');
+      return;
+    }
+
+    // Parse filename from headers
+    const cd = res.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename="?([^"]+)"?/);
+    const filename = match ? match[1] : `scheme.${docType}`;
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    // Update wallet balance
+    const balRes = await API.get('/wallet/balance');
+    SPA.walletBalance = balRes.balance;
+    if (document.getElementById('nav-balance'))
+      document.getElementById('nav-balance').textContent = balRes.balance.toFixed(2);
+    renderStep(4); // refresh to show updated balance
+    showNotification('Document download started.', 'success');
+  } catch(e) {
+    showNotification('Download error: ' + e.message, 'error');
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────
+loadSidebar();
+</script>
+{% endblock %}

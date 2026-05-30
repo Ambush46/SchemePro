@@ -1,0 +1,61 @@
+<div class="modal-overlay" id="topup-modal" onclick="closeModalOutside(event,'topup-modal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('topup-modal')">×</button>
+    <div class="modal-title">Top Up Wallet</div>
+    <div class="modal-sub">Current balance: <strong id="topup-balance-display">KES 0.00</strong></div>
+    <div id="topup-error" class="alert alert-error" style="display:none"></div>
+    <div id="topup-success" class="alert alert-success" style="display:none"></div>
+    <div class="form-group">
+      <label class="form-label">Amount (KES)</label>
+      <input class="form-input" id="topup-amount" type="number" placeholder="e.g. 500" min="1" step="1">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Payment Method</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.75rem">
+        <div class="pm-option selected" id="pm-mpesa" onclick="selectPaymentMethod('mpesa')">📱 M-Pesa</div>
+        <div class="pm-option" id="pm-pesapal" onclick="selectPaymentMethod('pesapal')">🏦 Pesapal</div>
+        <div class="pm-option" id="pm-card" onclick="selectPaymentMethod('card')">💳 Card</div>
+        <div class="pm-option" id="pm-bank" onclick="selectPaymentMethod('bank')">🏛 Bank Transfer</div>
+      </div>
+    </div>
+    <div id="pm-field-mpesa">
+      <div class="form-group">
+        <label class="form-label">M-Pesa Phone Number</label>
+        <input class="form-input" id="mpesa-phone" type="tel" placeholder="0712 345 678">
+      </div>
+    </div>
+    <div id="pm-field-pesapal" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Pesapal Email or Phone</label>
+        <input class="form-input" id="pesapal-contact" type="text" placeholder="email@example.com">
+      </div>
+    </div>
+    <div id="pm-field-card" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Card Number</label>
+        <input class="form-input" id="card-number" type="text" placeholder="1234 5678 9012 3456" maxlength="19">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Expiry (MM/YY)</label>
+          <input class="form-input" id="card-expiry" type="text" placeholder="12/26" maxlength="5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">CVV</label>
+          <input class="form-input" id="card-cvv" type="password" placeholder="123" maxlength="4">
+        </div>
+      </div>
+    </div>
+    <div id="pm-field-bank" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Bank Transaction Reference</label>
+        <input class="form-input" id="bank-ref" type="text" placeholder="Transaction reference number">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="doTopup()">Add to Wallet</button>
+  </div>
+</div>
+<style>
+.pm-option{border:1px solid var(--gray-200);border-radius:var(--radius);padding:10px 12px;cursor:pointer;font-size:13px;font-weight:500;text-align:center;transition:all .12s}
+.pm-option:hover,.pm-option.selected{border-color:var(--blue-500);background:var(--blue-50);color:var(--blue-700)}
+</style>

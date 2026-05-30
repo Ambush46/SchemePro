@@ -1,0 +1,1417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Generate Kenya KICD-standard Schemes of Work for 844 and CBC curriculum systems. Fast, accurate, and professionally formatted.">
+<meta name="keywords" content="scheme of work, Kenya, KICD, CBC, 844, curriculum, teacher, education">
+<title>SchemePro — Kenya Scheme of Work Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+:root {
+  --blue-50: #EFF6FF;
+  --blue-100: #DBEAFE;
+  --blue-200: #BFDBFE;
+  --blue-400: #60A5FA;
+  --blue-500: #3B82F6;
+  --blue-600: #2563EB;
+  --blue-700: #1D4ED8;
+  --blue-800: #1E40AF;
+  --blue-900: #1E3A8A;
+  --gray-50: #F9FAFB;
+  --gray-100: #F3F4F6;
+  --gray-200: #E5E7EB;
+  --gray-300: #D1D5DB;
+  --gray-400: #9CA3AF;
+  --gray-500: #6B7280;
+  --gray-600: #4B5563;
+  --gray-700: #374151;
+  --gray-800: #1F2937;
+  --gray-900: #111827;
+  --red-50: #FEF2F2;
+  --red-600: #DC2626;
+  --green-50: #F0FDF4;
+  --green-600: #16A34A;
+  --amber-50: #FFFBEB;
+  --amber-600: #D97706;
+  --primary: var(--blue-600);
+  --primary-dark: var(--blue-700);
+  --primary-light: var(--blue-50);
+  --text: var(--gray-900);
+  --text-muted: var(--gray-500);
+  --border: var(--gray-200);
+  --bg: #fff;
+  --bg-soft: var(--gray-50);
+  --radius: 8px;
+  --radius-lg: 12px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.05);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--text); background: var(--bg); line-height: 1.6; font-size: 15px; }
+
+/* ── NAV ── */
+nav { position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 2rem; height: 60px; gap: 2rem; box-shadow: var(--shadow); }
+.nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--text); font-weight: 700; font-size: 18px; }
+.nav-logo-icon { width: 36px; height: 36px; background: var(--blue-600); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 18px; font-weight: 800; flex-shrink: 0; }
+.nav-links { display: flex; gap: 0; margin-left: auto; }
+.nav-link { padding: 6px 14px; border-radius: var(--radius); font-size: 14px; color: var(--text-muted); cursor: pointer; border: none; background: none; transition: all .15s; font-weight: 500; }
+.nav-link:hover, .nav-link.active { background: var(--blue-50); color: var(--blue-600); }
+.nav-auth { display: flex; gap: 8px; margin-left: 1rem; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: var(--radius); font-size: 14px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--bg); color: var(--text); transition: all .15s; text-decoration: none; white-space: nowrap; }
+.btn:hover { background: var(--gray-50); }
+.btn-primary { background: var(--blue-600); color: #fff; border-color: var(--blue-600); }
+.btn-primary:hover { background: var(--blue-700); border-color: var(--blue-700); }
+.btn-sm { padding: 5px 12px; font-size: 13px; }
+.btn-lg { padding: 12px 28px; font-size: 15px; }
+.btn-danger { border-color: var(--red-600); color: var(--red-600); }
+.btn-danger:hover { background: var(--red-50); }
+.btn-outline { border-color: var(--blue-600); color: var(--blue-600); }
+.btn-outline:hover { background: var(--blue-50); }
+
+/* ── PAGES ── */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ── AUTH MODAL ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: #fff; border-radius: var(--radius-lg); padding: 2rem; width: 100%; max-width: 420px; box-shadow: var(--shadow-md); }
+.modal-title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+.modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 1.5rem; }
+.form-group { margin-bottom: 1rem; }
+.form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 5px; color: var(--gray-700); }
+.form-input { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius); font-size: 14px; color: var(--text); transition: border .15s; }
+.form-input:focus { outline: none; border-color: var(--blue-500); box-shadow: 0 0 0 3px var(--blue-100); }
+.form-select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236B7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 28px; }
+.modal-footer { text-align: center; margin-top: 1rem; font-size: 13px; color: var(--text-muted); }
+.modal-footer a { color: var(--blue-600); cursor: pointer; text-decoration: underline; }
+.modal-close { float: right; background: none; border: none; font-size: 20px; cursor: pointer; color: var(--text-muted); line-height: 1; }
+
+/* ── LANDING ── */
+.hero { background: linear-gradient(135deg, var(--blue-900) 0%, var(--blue-700) 60%, var(--blue-500) 100%); color: #fff; padding: 5rem 2rem 4rem; text-align: center; }
+.hero-badge { display: inline-block; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 4px 14px; font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 1.5rem; }
+.hero h1 { font-size: clamp(28px, 5vw, 52px); font-weight: 800; line-height: 1.15; margin-bottom: 1rem; }
+.hero-sub { font-size: 18px; opacity: .85; max-width: 580px; margin: 0 auto 2rem; }
+.hero-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.hero-actions .btn-light { background: #fff; color: var(--blue-700); border-color: #fff; }
+.hero-actions .btn-light:hover { background: var(--blue-50); }
+
+.section { padding: 4rem 2rem; max-width: 1100px; margin: 0 auto; }
+.section-title { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+.section-sub { color: var(--text-muted); margin-bottom: 2.5rem; font-size: 15px; }
+
+.levels-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.level-card { border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; transition: box-shadow .15s, transform .15s; }
+.level-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.level-header { padding: 1rem 1.25rem; font-weight: 700; font-size: 14px; letter-spacing: .02em; }
+.level-header.primary-hdr { background: var(--blue-50); color: var(--blue-800); border-bottom: 1px solid var(--blue-100); }
+.level-header.junior-hdr { background: #F0FDF4; color: #166534; border-bottom: 1px solid #BBF7D0; }
+.level-header.senior-hdr { background: #FFF7ED; color: #9A3412; border-bottom: 1px solid #FED7AA; }
+.level-subjects { padding: .5rem; }
+.subj-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border-radius: var(--radius); border: none; background: none; color: var(--gray-700); font-size: 14px; cursor: pointer; text-align: left; transition: all .12s; }
+.subj-btn:hover { background: var(--blue-50); color: var(--blue-700); }
+.subj-btn svg { flex-shrink: 0; opacity: .5; }
+.subj-btn:hover svg { opacity: 1; }
+
+.features-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; }
+.feature-card { padding: 1.5rem; border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.feature-icon { width: 40px; height: 40px; background: var(--blue-50); border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; }
+.feature-icon svg { color: var(--blue-600); }
+.feature-title { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+.feature-desc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+
+.faq-item { border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
+.faq-q { padding: 14px 16px; font-weight: 500; font-size: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+.faq-q:hover { background: var(--gray-50); }
+.faq-a { padding: 0 16px; font-size: 13px; color: var(--text-muted); max-height: 0; overflow: hidden; transition: max-height .25s ease, padding .25s; }
+.faq-a.open { max-height: 200px; padding: 12px 16px; border-top: 1px solid var(--border); }
+
+footer { background: var(--gray-900); color: var(--gray-400); padding: 2rem; text-align: center; font-size: 13px; }
+footer a { color: var(--blue-400); text-decoration: none; }
+
+/* ── APP (SPA) ── */
+.app-layout { display: flex; min-height: calc(100vh - 60px); }
+.app-sidebar { width: 220px; border-right: 1px solid var(--border); background: var(--gray-50); padding: 1rem; flex-shrink: 0; overflow-y: auto; }
+.app-main { flex: 1; overflow-y: auto; padding: 2rem; max-height: calc(100vh - 60px); }
+.sidebar-section { margin-bottom: 1.5rem; }
+.sidebar-heading { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); padding: 0 8px; margin-bottom: 6px; }
+.sidebar-item { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: var(--radius); font-size: 13px; color: var(--gray-600); cursor: pointer; border: none; background: none; width: 100%; text-align: left; transition: all .12s; }
+.sidebar-item:hover { background: var(--blue-50); color: var(--blue-700); }
+.sidebar-item.selected { background: var(--blue-100); color: var(--blue-800); font-weight: 600; }
+.sidebar-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+
+/* Step bar */
+.step-bar { display: flex; margin-bottom: 2rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.step { flex: 1; padding: 10px 8px; text-align: center; font-size: 12px; font-weight: 500; border-right: 1px solid var(--border); background: var(--bg); color: var(--text-muted); cursor: default; transition: all .15s; }
+.step:last-child { border-right: none; }
+.step.active { background: var(--blue-600); color: #fff; }
+.step.done { background: var(--blue-50); color: var(--blue-700); cursor: pointer; }
+.step-num { display: block; font-size: 17px; font-weight: 700; line-height: 1.2; }
+
+/* Cards */
+.card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1.25rem; box-shadow: var(--shadow); }
+.card-title { font-size: 14px; font-weight: 600; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; color: var(--gray-800); }
+.card-title-icon { width: 28px; height: 28px; background: var(--blue-50); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: var(--blue-600); flex-shrink: 0; }
+
+/* Form grid */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+.form-full { grid-column: 1 / -1; }
+
+/* Badge / tag */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; }
+.badge-blue { background: var(--blue-100); color: var(--blue-800); }
+.badge-green { background: var(--green-50); color: var(--green-600); }
+.badge-amber { background: var(--amber-50); color: var(--amber-600); }
+
+/* Wallet */
+.wallet-strip { display: flex; align-items: center; gap: 12px; background: var(--blue-50); border: 1px solid var(--blue-200); border-radius: var(--radius-lg); padding: 1rem 1.25rem; margin-bottom: 1.25rem; }
+.wallet-amount { font-size: 22px; font-weight: 700; color: var(--blue-800); }
+.wallet-label { font-size: 12px; color: var(--blue-600); font-weight: 500; }
+
+/* Break rows */
+.break-row { display: grid; grid-template-columns: 1.2fr .7fr .7fr .7fr auto; align-items: center; gap: 8px; background: var(--gray-50); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px; margin-bottom: 8px; }
+.break-row label { font-size: 11px; color: var(--text-muted); display: block; margin-bottom: 2px; font-weight: 500; }
+.break-row select, .break-row input { font-size: 12px; padding: 4px 7px; width: 100%; border: 1px solid var(--border); border-radius: 5px; }
+.break-row select:focus, .break-row input:focus { outline: none; border-color: var(--blue-500); }
+
+/* Table */
+.sow-table-wrap { overflow-x: auto; border-radius: var(--radius); border: 1px solid var(--border); }
+.sow-table { width: 100%; border-collapse: collapse; font-size: 11.5px; min-width: 900px; }
+.sow-table th { background: var(--blue-800); color: #fff; padding: 8px 10px; text-align: left; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; white-space: nowrap; }
+.sow-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--gray-700); }
+.sow-table tr:last-child td { border-bottom: none; }
+.sow-table tr:nth-child(even) td { background: var(--gray-50); }
+.sow-table td.wk { font-weight: 700; color: var(--blue-800); font-size: 13px; }
+.sow-table td.break-row-tr { background: #FFF7ED !important; color: var(--amber-600); font-style: italic; font-size: 11px; }
+.sow-table tr.break-week td { background: var(--amber-50) !important; color: var(--amber-600); font-style: italic; }
+
+/* Spinner */
+.spinner-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem; gap: 16px; }
+.spinner { width: 40px; height: 40px; border: 3px solid var(--blue-100); border-top-color: var(--blue-600); border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Download cards */
+.dl-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.dl-card { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; display: flex; flex-direction: column; align-items: center; gap: 10px; cursor: pointer; transition: all .15s; text-align: center; }
+.dl-card:hover { border-color: var(--blue-500); background: var(--blue-50); box-shadow: var(--shadow-md); }
+.dl-card.disabled { opacity: .5; cursor: not-allowed; }
+.dl-card.disabled:hover { border-color: var(--border); background: #fff; box-shadow: none; }
+.dl-icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.dl-icon.pdf { background: #FEF2F2; color: #DC2626; }
+.dl-icon.docx { background: var(--blue-50); color: var(--blue-600); }
+.dl-icon.zip { background: #F5F3FF; color: #7C3AED; }
+.dl-name { font-size: 14px; font-weight: 600; }
+.dl-price { font-size: 12px; color: var(--text-muted); }
+.dl-desc { font-size: 11px; color: var(--text-muted); }
+
+/* Admin */
+.admin-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+.admin-tab { padding: 8px 16px; font-size: 13px; font-weight: 500; color: var(--text-muted); border: none; background: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
+.admin-tab.active { color: var(--blue-600); border-bottom-color: var(--blue-600); }
+.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.stat-card { background: var(--blue-50); border: 1px solid var(--blue-100); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+.stat-val { font-size: 26px; font-weight: 700; color: var(--blue-800); line-height: 1.1; }
+.stat-label { font-size: 12px; color: var(--blue-600); margin-top: 4px; font-weight: 500; }
+.stat-delta { font-size: 11px; color: var(--green-600); margin-top: 2px; }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-table th { text-align: left; padding: 8px 12px; border-bottom: 2px solid var(--border); font-weight: 600; color: var(--gray-600); font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+.admin-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.admin-table tr:last-child td { border-bottom: none; }
+.admin-table tr:hover td { background: var(--gray-50); }
+.user-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--blue-100); color: var(--blue-800); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+.status-dot.online { background: var(--green-600); }
+.status-dot.offline { background: var(--gray-300); }
+.revenue-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+.rev-card { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+.rev-val { font-size: 22px; font-weight: 700; margin-bottom: 2px; }
+.rev-label { font-size: 12px; color: var(--text-muted); }
+.rev-bar-wrap { margin-top: 8px; height: 4px; background: var(--gray-100); border-radius: 2px; }
+.rev-bar { height: 100%; border-radius: 2px; background: var(--blue-500); }
+
+/* Topup modal */
+.payment-methods { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 1rem; }
+.pm-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; cursor: pointer; font-size: 13px; font-weight: 500; text-align: center; transition: all .12s; }
+.pm-card:hover, .pm-card.selected { border-color: var(--blue-500); background: var(--blue-50); color: var(--blue-700); }
+.pm-input { margin-top: .75rem; display: none; }
+.pm-input.show { display: block; }
+
+/* Alert */
+.alert { padding: 10px 14px; border-radius: var(--radius); font-size: 13px; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+.alert-info { background: var(--blue-50); color: var(--blue-800); border: 1px solid var(--blue-200); }
+.alert-error { background: var(--red-50); color: var(--red-600); border: 1px solid #FECACA; }
+.alert-success { background: var(--green-50); color: var(--green-600); border: 1px solid #BBF7D0; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .levels-grid, .features-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .dl-grid { grid-template-columns: 1fr; }
+  .app-sidebar { display: none; }
+}
+
+.action-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1.25rem; padding-top: 1rem; border-top: 1px solid var(--border); }
+.empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+.empty-state-icon { font-size: 48px; margin-bottom: 1rem; opacity: .3; }
+
+/* Progress indicator for generation */
+.gen-steps { margin-top: 1rem; display: flex; flex-direction: column; gap: 6px; text-align: left; max-width: 320px; }
+.gen-step { font-size: 12px; color: var(--text-muted); display: flex; align-items: center; gap: 8px; }
+.gen-step.done { color: var(--green-600); }
+.gen-step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray-200); flex-shrink: 0; }
+.gen-step.done .gen-step-dot { background: var(--green-600); }
+.gen-step.active .gen-step-dot { background: var(--blue-500); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#" onclick="showPage('landing')">
+    <div class="nav-logo-icon">S</div>
+    SchemePro
+  </a>
+  <button class="nav-link active" id="nav-home" onclick="showPage('landing');setActive('nav-home')">Home</button>
+  <button class="nav-link" id="nav-about" onclick="showPage('about');setActive('nav-about')">About & FAQ</button>
+  <button class="nav-link" id="nav-app" onclick="requireAuth()">Generate</button>
+  <div class="nav-auth" id="nav-auth-area">
+    <button class="btn btn-sm" onclick="openModal('login-modal')">Log in</button>
+    <button class="btn btn-sm btn-primary" onclick="openModal('register-modal')">Sign up</button>
+  </div>
+  <div style="display:none;gap:8px;align-items:center" id="nav-user-area">
+    <span style="font-size:13px;color:var(--text-muted)" id="nav-username"></span>
+    <button class="btn btn-sm btn-outline" onclick="openTopupModal()">Top up wallet</button>
+    <button class="btn btn-sm" onclick="logout()">Log out</button>
+  </div>
+</nav>
+
+<!-- ════════════ LANDING PAGE ════════════ -->
+<div id="page-landing" class="page active">
+  <div class="hero">
+    <div class="hero-badge">✦ Kenya KICD & MoE Standard</div>
+    <h1>Generate Professional<br>Schemes of Work Instantly</h1>
+    <p class="hero-sub">AI-powered scheme of work generator for Kenya's 844 and CBC curriculum systems. Save hours of planning every term.</p>
+    <div class="hero-actions">
+      <button class="btn btn-lg btn-light" onclick="requireAuth()">Get Started Free</button>
+      <button class="btn btn-lg" style="background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.3)" onclick="showPage('about');setActive('nav-about')">Learn More</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Browse by Level & Subject</div>
+    <p class="section-sub">Click any subject to start generating your scheme of work</p>
+    <div class="levels-grid">
+      <!-- Primary -->
+      <div class="level-card">
+        <div class="level-header primary-hdr">📚 Primary School (844 System)</div>
+        <div class="level-subjects">
+          <button class="subj-btn" onclick="startGenerate('Mathematics','primary','std4','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Mathematics
+          </button>
+          <button class="subj-btn" onclick="startGenerate('English','primary','std5','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            English
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Kiswahili','primary','std6','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+            Kiswahili
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Science & Technology','primary','std6','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            Science & Technology
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Social Studies','primary','std7','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+            Social Studies
+          </button>
+          <button class="subj-btn" onclick="startGenerate('CRE','primary','std7','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            CRE / IRE
+          </button>
+        </div>
+      </div>
+      <!-- Junior -->
+      <div class="level-card">
+        <div class="level-header junior-hdr">🌿 Junior School (CBC System) Grade 7–9</div>
+        <div class="level-subjects">
+          <button class="subj-btn" onclick="startGenerate('Mathematics','junior','grade7','CBC')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Mathematics
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Integrated Science','junior','grade8','CBC')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+            Integrated Science
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Social Studies','junior','grade9','CBC')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+            Social Studies
+          </button>
+          <button class="subj-btn" onclick="startGenerate('English','junior','grade7','CBC')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+            English & Lit
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Kiswahili','junior','grade8','CBC')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+            Kiswahili
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Creative Arts','junior','grade9','CBC')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Creative Arts & Sports
+          </button>
+        </div>
+      </div>
+      <!-- Senior -->
+      <div class="level-card">
+        <div class="level-header senior-hdr">🎓 Senior School (844) Form 1–4</div>
+        <div class="level-subjects">
+          <button class="subj-btn" onclick="startGenerate('Physics','senior','form3','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            Physics
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Chemistry','senior','form2','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18"/></svg>
+            Chemistry
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Biology','senior','form1','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            Biology
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Mathematics','senior','form3','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            Mathematics
+          </button>
+          <button class="subj-btn" onclick="startGenerate('History & Gov\'t','senior','form3','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+            History & Government
+          </button>
+          <button class="subj-btn" onclick="startGenerate('Geography','senior','form2','844')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+            Geography
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--gray-50);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:3rem 2rem">
+    <div style="max-width:1100px;margin:0 auto">
+      <div class="section-title">Why SchemePro?</div>
+      <p class="section-sub">Built specifically for Kenyan teachers and schools</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
+          <div class="feature-title">AI-Powered Generation</div>
+          <div class="feature-desc">Claude AI generates accurate, KICD-compliant content including objectives, activities, resources, and assessment methods specific to Kenya's curriculum.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+          <div class="feature-title">Both 844 & CBC Systems</div>
+          <div class="feature-desc">Supports both the traditional 8-4-4 curriculum format and the modern Competency-Based Curriculum (CBC) with correct table structures for each.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div>
+          <div class="feature-title">Download in 3 Formats</div>
+          <div class="feature-desc">Download your scheme as a PDF, editable Word document (.docx), or a ZIP bundle with both formats included — ready to print or share.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2025 SchemePro · Built for Kenyan Teachers · <a href="#">Privacy Policy</a> · <a href="#">Terms of Service</a></p>
+    <p style="margin-top:6px">Aligned with KICD guidelines and Kenya Ministry of Education standards</p>
+  </footer>
+</div>
+
+<!-- ════════════ ABOUT PAGE ════════════ -->
+<div id="page-about" class="page">
+  <div class="section">
+    <div class="section-title">About SchemePro</div>
+    <p class="section-sub">Your AI assistant for Kenya curriculum planning</p>
+
+    <div class="card" style="margin-bottom:2rem">
+      <p style="line-height:1.8;color:var(--gray-700)">SchemePro is a web-based application designed to help Kenyan teachers generate professional, KICD-compliant schemes of work in minutes. Whether you teach in a primary school, junior school, or secondary school, our AI generates complete term plans with topics, objectives, learning activities, teaching aids, references and assessment methods — all aligned to the Ministry of Education standards.</p>
+      <br>
+      <p style="line-height:1.8;color:var(--gray-700)">The platform supports both the 8-4-4 system and the Competency-Based Curriculum (CBC/CBE), producing the correct table format for each. Documents can be downloaded as PDF, Word (.docx), or ZIP bundles.</p>
+    </div>
+
+    <div class="section-title" style="font-size:20px">Frequently Asked Questions</div>
+    <div style="height:12px"></div>
+
+    <div id="faq-container">
+      <!-- FAQs injected by JS -->
+    </div>
+
+    <div class="card" style="margin-top:2rem">
+      <div class="card-title">📞 Contact & Support</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;font-size:14px;color:var(--gray-700)">
+        <div><strong>Email:</strong> support@schemepro.co.ke</div>
+        <div><strong>Phone:</strong> +254 700 000 000</div>
+        <div><strong>WhatsApp:</strong> +254 700 000 000</div>
+        <div><strong>Hours:</strong> Mon–Fri, 8am–6pm EAT</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ APP PAGE ════════════ -->
+<div id="page-app" class="page">
+  <div class="app-layout">
+    <div class="app-sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-heading">Primary (844)</div>
+        <button class="sidebar-item" onclick="selectSubject('Mathematics','primary','std4','844',this)"><span class="sidebar-dot"></span>Mathematics</button>
+        <button class="sidebar-item" onclick="selectSubject('English','primary','std5','844',this)"><span class="sidebar-dot"></span>English</button>
+        <button class="sidebar-item" onclick="selectSubject('Kiswahili','primary','std6','844',this)"><span class="sidebar-dot"></span>Kiswahili</button>
+        <button class="sidebar-item" onclick="selectSubject('Science & Technology','primary','std6','844',this)"><span class="sidebar-dot"></span>Science & Tech</button>
+        <button class="sidebar-item" onclick="selectSubject('Social Studies','primary','std7','844',this)"><span class="sidebar-dot"></span>Social Studies</button>
+        <button class="sidebar-item" onclick="selectSubject('CRE','primary','std7','844',this)"><span class="sidebar-dot"></span>CRE / IRE</button>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-heading">Junior School (CBC)</div>
+        <button class="sidebar-item" onclick="selectSubject('Mathematics','junior','grade7','CBC',this)"><span class="sidebar-dot"></span>Mathematics</button>
+        <button class="sidebar-item" onclick="selectSubject('Integrated Science','junior','grade8','CBC',this)"><span class="sidebar-dot"></span>Integrated Science</button>
+        <button class="sidebar-item" onclick="selectSubject('Social Studies','junior','grade9','CBC',this)"><span class="sidebar-dot"></span>Social Studies</button>
+        <button class="sidebar-item" onclick="selectSubject('English','junior','grade7','CBC',this)"><span class="sidebar-dot"></span>English & Lit</button>
+        <button class="sidebar-item" onclick="selectSubject('Kiswahili','junior','grade8','CBC',this)"><span class="sidebar-dot"></span>Kiswahili</button>
+        <button class="sidebar-item" onclick="selectSubject('Creative Arts','junior','grade9','CBC',this)"><span class="sidebar-dot"></span>Creative Arts</button>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-heading">Senior School (844)</div>
+        <button class="sidebar-item" onclick="selectSubject('Physics','senior','form3','844',this)"><span class="sidebar-dot"></span>Physics</button>
+        <button class="sidebar-item" onclick="selectSubject('Chemistry','senior','form2','844',this)"><span class="sidebar-dot"></span>Chemistry</button>
+        <button class="sidebar-item" onclick="selectSubject('Biology','senior','form1','844',this)"><span class="sidebar-dot"></span>Biology</button>
+        <button class="sidebar-item" onclick="selectSubject('Mathematics','senior','form3','844',this)"><span class="sidebar-dot"></span>Mathematics</button>
+        <button class="sidebar-item" onclick="selectSubject("History & Gov't",'senior','form3','844',this)"><span class="sidebar-dot"></span>History & Gov't</button>
+        <button class="sidebar-item" onclick="selectSubject('Geography','senior','form2','844',this)"><span class="sidebar-dot"></span>Geography</button>
+        <button class="sidebar-item" onclick="selectSubject('English','senior','form4','844',this)"><span class="sidebar-dot"></span>English</button>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-heading">Account</div>
+        <button class="sidebar-item" onclick="showAdminPanel()" id="admin-link" style="display:none"><span style="font-size:14px">⚙</span>Admin Panel</button>
+        <button class="sidebar-item" onclick="openTopupModal()"><span style="font-size:14px">💳</span>Top Up Wallet</button>
+      </div>
+    </div>
+    <div class="app-main" id="app-main">
+      <div class="empty-state">
+        <div class="empty-state-icon">📄</div>
+        <div style="font-size:16px;font-weight:600;margin-bottom:8px;color:var(--gray-700)">Select a subject to begin</div>
+        <div style="font-size:13px">Choose any subject from the sidebar to start generating your scheme of work</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ ADMIN PAGE ════════════ -->
+<div id="page-admin" class="page">
+  <div style="padding:2rem">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.5rem">
+      <button class="btn btn-sm" onclick="showPage('app');setActive('nav-app')">← Back to Generator</button>
+      <h1 style="font-size:20px;font-weight:700">Admin Dashboard</h1>
+      <span class="badge badge-blue" id="admin-role-badge">Admin</span>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab active" onclick="showAdminTab('overview',this)">Overview</button>
+      <button class="admin-tab" onclick="showAdminTab('users',this)">Users</button>
+      <button class="admin-tab" onclick="showAdminTab('revenue',this)">Revenue</button>
+      <button class="admin-tab" onclick="showAdminTab('content',this)">Curriculum Content</button>
+      <button class="admin-tab" onclick="showAdminTab('pricing',this)">Document Pricing</button>
+    </div>
+    <div id="admin-tab-content"></div>
+  </div>
+</div>
+
+<!-- ════════════ MODALS ════════════ -->
+<!-- Login -->
+<div class="modal-overlay" id="login-modal" onclick="closeModalOutside(event,'login-modal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('login-modal')">×</button>
+    <div class="modal-title">Welcome back</div>
+    <div class="modal-sub">Sign in to your SchemePro account</div>
+    <div id="login-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group">
+      <label class="form-label">Username or Email</label>
+      <input class="form-input" id="login-user" type="text" placeholder="Enter username or email">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="login-pass" type="password" placeholder="Enter password">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Sign In</button>
+    <div class="modal-footer">Don't have an account? <a onclick="switchModal('login-modal','register-modal')">Sign up</a></div>
+  </div>
+</div>
+
+<!-- Register -->
+<div class="modal-overlay" id="register-modal" onclick="closeModalOutside(event,'register-modal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('register-modal')">×</button>
+    <div class="modal-title">Create your account</div>
+    <div class="modal-sub">Start generating schemes of work today</div>
+    <div id="register-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Full Name</label>
+        <input class="form-input" id="reg-name" type="text" placeholder="Jane Muthoni">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Username</label>
+        <input class="form-input" id="reg-username" type="text" placeholder="janemuthoni">
+      </div>
+      <div class="form-group form-full">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="reg-email" type="email" placeholder="jane@school.ac.ke">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="reg-pass" type="password" placeholder="Min 8 characters">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirm Password</label>
+        <input class="form-input" id="reg-pass2" type="password" placeholder="Repeat password">
+      </div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:4px" onclick="doRegister()">Create Account</button>
+    <div class="modal-footer">Already have an account? <a onclick="switchModal('register-modal','login-modal')">Sign in</a></div>
+  </div>
+</div>
+
+<!-- Top Up Modal -->
+<div class="modal-overlay" id="topup-modal" onclick="closeModalOutside(event,'topup-modal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('topup-modal')">×</button>
+    <div class="modal-title">Top Up Wallet</div>
+    <div class="modal-sub">Current balance: <strong id="topup-current-balance">KES 0.00</strong></div>
+    <div id="topup-error" class="alert alert-error" style="display:none"></div>
+    <div id="topup-success" class="alert alert-success" style="display:none"></div>
+    <div class="form-group">
+      <label class="form-label">Amount (KES)</label>
+      <input class="form-input" id="topup-amount" type="number" placeholder="e.g. 500" min="10">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Payment Method</label>
+      <div class="payment-methods">
+        <div class="pm-card selected" id="pm-mpesa" onclick="selectPM('mpesa')">📱 M-Pesa</div>
+        <div class="pm-card" id="pm-pesapal" onclick="selectPM('pesapal')">🏦 Pesapal</div>
+        <div class="pm-card" id="pm-card" onclick="selectPM('card')">💳 Card</div>
+        <div class="pm-card" id="pm-bank" onclick="selectPM('bank')">🏛 Bank Transfer</div>
+      </div>
+    </div>
+    <div class="pm-input show" id="pm-mpesa-input">
+      <label class="form-label">M-Pesa Phone Number</label>
+      <input class="form-input" id="mpesa-phone" type="tel" placeholder="0712 345 678">
+    </div>
+    <div class="pm-input" id="pm-pesapal-input">
+      <label class="form-label">Pesapal Email</label>
+      <input class="form-input" id="pesapal-email" type="email" placeholder="email@example.com">
+    </div>
+    <div class="pm-input" id="pm-card-input">
+      <label class="form-label">Card Number</label>
+      <input class="form-input" id="card-number" type="text" placeholder="1234 5678 9012 3456">
+    </div>
+    <div class="pm-input" id="pm-bank-input">
+      <label class="form-label">Reference Number</label>
+      <input class="form-input" id="bank-ref" type="text" placeholder="Bank transaction reference">
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px" onclick="doTopup()">Add to Wallet</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+const DB = {
+  users: [
+    { id:'u1', name:'Admin User', username:'admin', email:'admin@schemepro.co.ke', password:'admin123', role:'superuser', wallet:500, createdAt:'2024-01-15', lastActive: new Date().toISOString(), history:[] },
+    { id:'u2', name:'Jane Muthoni', username:'jane', email:'jane@school.ac.ke', password:'jane123', role:'client', wallet:150, createdAt:'2024-03-10', lastActive:'2025-05-14T09:22:00', history:[] }
+  ],
+  roles: [
+    { id:'r1', tag:'superuser', name:'Super Administrator' },
+    { id:'r2', tag:'admin', name:'Administrator' },
+    { id:'r3', tag:'support', name:'Support Staff' },
+    { id:'r4', tag:'client', name:'Client / Teacher' }
+  ],
+  pricing: { pdf: 30, docx: 50, zip: 70 },
+  transactions: [
+    { id:'t1', user:'u2', amount:200, type:'credit', method:'M-Pesa', ref:'QJK12345', datetime:'2025-05-10T10:00:00', tag:'wallet' },
+    { id:'t2', user:'u2', amount:50, type:'debit', method:'wallet', ref:'DOC-001', datetime:'2025-05-10T10:05:00', tag:'payment' }
+  ],
+  docStats: [
+    { subject:'Physics Form 3', system:'844', count:312 },
+    { subject:'Mathematics Grade 7', system:'CBC', count:278 },
+    { subject:'Social Studies Grade 9', system:'CBC', count:201 },
+    { subject:'Chemistry Form 2', system:'844', count:189 },
+    { subject:'Biology Form 1', system:'844', count:143 }
+  ]
+};
+
+const APP = {
+  currentUser: null,
+  subject: null, level: null, subLevel: null, system: null,
+  step: 0,
+  params: {},
+  breaks: [],
+  generated: null,
+  selectedPM: 'mpesa'
+};
+
+const TOPICS = {
+  'Physics': ['Measurements and Practical Skills','Linear Motion','Newton\'s Laws of Motion','Work, Energy and Power','Waves','Sound','Electricity','Magnetism and Electromagnetism','Cathode Rays and Radioactivity','Optics'],
+  'Chemistry': ['Introduction to Chemistry','Acids, Bases and Salts','Carbon and its Compounds','Chemical Families','Electrochemistry','Energy Changes in Chemical Reactions','Reaction Rates and Equilibrium'],
+  'Biology': ['Cell Biology','Nutrition in Plants and Animals','Transport in Plants and Animals','Respiration','Excretion','Reproduction in Plants and Animals','Genetics and Heredity','Evolution'],
+  'Mathematics': ['Numbers and Number Operations','Algebra and Algebraic Expressions','Geometry and Spatial Sense','Measurements','Statistics and Probability','Calculus (Form 3/4)'],
+  'English': ['Reading and Comprehension','Writing Skills','Grammar and Language Use','Oral and Aural Skills','Literature in English'],
+  'Kiswahili': ['Kusoma na Ufahamu','Kuandika','Sarufi','Fasihi ya Kiswahili','Mazungumzo'],
+  'Social Studies': ['Population Structure and Distribution','Peaceful Conflict Resolution','Economic Activities in Kenya','Governance and Leadership','Environmental Conservation','Regional and International Organizations'],
+  'Science & Technology': ['Living Things and Their Environment','Matter and its Properties','Energy and its Transformations','Earth and Space','Health and Safety','Technology and Innovation'],
+  'CRE': ['Creation and the Fall of Man','Old Testament History','The Life of Jesus Christ','The Early Church','Christian Ethics and Social Issues'],
+  'Integrated Science': ['Biology Concepts','Physics Concepts','Chemistry Concepts','Earth Science','Scientific Inquiry and Investigation'],
+  'Creative Arts': ['Visual Arts','Performing Arts','Sports and Physical Education','Music','Drama and Theatre'],
+  "History & Gov't": ['Pre-Colonial Africa','The Colonial Period','Kenya\'s Road to Independence','Post-Independence Kenya','African Unity and International Relations'],
+  'Geography': ['Natural Regions of the World','Population Distribution','Agriculture and Land Use','Industry and Trade','Environmental Issues and Conservation']
+};
+
+const SUB_LEVELS = {
+  primary: ['Std 1','Std 2','Std 3','Std 4','Std 5','Std 6','Std 7','Std 8'],
+  junior: ['Grade 7','Grade 8','Grade 9'],
+  senior: ['Form 1','Form 2','Form 3','Form 4']
+};
+
+// ═══════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  if(id === 'about') renderFAQ();
+}
+
+function setActive(id) {
+  document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'));
+  document.getElementById(id)?.classList.add('active');
+}
+
+function requireAuth() {
+  if(!APP.currentUser) { openModal('login-modal'); return false; }
+  showPage('app'); setActive('nav-app');
+  return true;
+}
+
+// ═══════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const found = DB.users.find(x => (x.username===u || x.email===u) && x.password===p);
+  if(!found) { showAlert('login-error','Invalid username or password'); return; }
+  found.lastActive = new Date().toISOString();
+  APP.currentUser = found;
+  closeModal('login-modal');
+  updateNavForAuth();
+  showPage('app'); setActive('nav-app');
+}
+
+function doRegister() {
+  const name = document.getElementById('reg-name').value.trim();
+  const username = document.getElementById('reg-username').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass = document.getElementById('reg-pass').value;
+  const pass2 = document.getElementById('reg-pass2').value;
+  if(!name||!username||!email||!pass) { showAlert('register-error','All fields are required'); return; }
+  if(pass.length < 8) { showAlert('register-error','Password must be at least 8 characters'); return; }
+  if(pass !== pass2) { showAlert('register-error','Passwords do not match'); return; }
+  if(DB.users.find(x=>x.username===username)) { showAlert('register-error','Username already taken'); return; }
+  if(DB.users.find(x=>x.email===email)) { showAlert('register-error','Email already registered'); return; }
+  const user = { id:'u'+Date.now(), name, username, email, password:pass, role:'client', wallet:0, createdAt:new Date().toISOString().slice(0,10), lastActive:new Date().toISOString(), history:[] };
+  DB.users.push(user);
+  APP.currentUser = user;
+  closeModal('register-modal');
+  updateNavForAuth();
+  showPage('app'); setActive('nav-app');
+}
+
+function logout() {
+  APP.currentUser = null;
+  APP.subject = null; APP.generated = null;
+  document.getElementById('nav-auth-area').style.display = 'flex';
+  document.getElementById('nav-user-area').style.display = 'none';
+  document.getElementById('admin-link').style.display = 'none';
+  showPage('landing'); setActive('nav-home');
+}
+
+function updateNavForAuth() {
+  document.getElementById('nav-auth-area').style.display = 'none';
+  document.getElementById('nav-user-area').style.display = 'flex';
+  document.getElementById('nav-username').textContent = APP.currentUser.name;
+  if(['admin','superuser'].includes(APP.currentUser.role)) {
+    document.getElementById('admin-link').style.display = 'flex';
+    document.getElementById('admin-role-badge').textContent = APP.currentUser.role === 'superuser' ? 'Super Admin' : 'Admin';
+  }
+}
+
+// ═══════════════════════════════════════
+// MODALS
+// ═══════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModalOutside(e,id) { if(e.target.id===id) closeModal(id); }
+function switchModal(from,to) { closeModal(from); openModal(to); }
+function showAlert(id,msg) { const el=document.getElementById(id); el.textContent=msg; el.style.display='flex'; }
+
+// ═══════════════════════════════════════
+// WALLET / TOP UP
+// ═══════════════════════════════════════
+function openTopupModal() {
+  if(!APP.currentUser) { openModal('login-modal'); return; }
+  document.getElementById('topup-current-balance').textContent = 'KES ' + APP.currentUser.wallet.toFixed(2);
+  document.getElementById('topup-error').style.display = 'none';
+  document.getElementById('topup-success').style.display = 'none';
+  openModal('topup-modal');
+}
+
+function selectPM(pm) {
+  APP.selectedPM = pm;
+  ['mpesa','pesapal','card','bank'].forEach(m => {
+    document.getElementById('pm-'+m).classList.toggle('selected', m===pm);
+    document.getElementById('pm-'+m+'-input').classList.toggle('show', m===pm);
+  });
+}
+
+function doTopup() {
+  const amt = parseFloat(document.getElementById('topup-amount').value);
+  if(!amt || amt < 10) { showAlert('topup-error','Minimum top up amount is KES 10'); return; }
+  const ref = APP.selectedPM.toUpperCase() + Math.floor(Math.random()*9000+1000);
+  APP.currentUser.wallet += amt;
+  DB.transactions.push({ id:'t'+Date.now(), user:APP.currentUser.id, amount:amt, type:'credit', method:APP.selectedPM, ref, datetime:new Date().toISOString(), tag:'wallet' });
+  document.getElementById('topup-success').textContent = `KES ${amt.toFixed(2)} added successfully! New balance: KES ${APP.currentUser.wallet.toFixed(2)}`;
+  document.getElementById('topup-success').style.display = 'flex';
+  document.getElementById('topup-error').style.display = 'none';
+  document.getElementById('topup-current-balance').textContent = 'KES ' + APP.currentUser.wallet.toFixed(2);
+  setTimeout(() => closeModal('topup-modal'), 2500);
+}
+
+// ═══════════════════════════════════════
+// SUBJECT SELECTION
+// ═══════════════════════════════════════
+function startGenerate(subject, level, subLevel, system) {
+  if(!requireAuth()) return;
+  const btn = [...document.querySelectorAll('.sidebar-item')].find(b => b.onclick?.toString().includes(`'${subject}'`) && b.onclick?.toString().includes(`'${system}'`));
+  selectSubject(subject, level, subLevel, system, btn);
+}
+
+function selectSubject(subject, level, subLevel, system, el) {
+  APP.subject = subject; APP.level = level; APP.subLevel = subLevel; APP.system = system;
+  APP.step = 1; APP.generated = null; APP.breaks = [];
+  APP.params = { grade:'', term:1, lessonsPerWeek:5, weeks:12, startWeek:1, doubleLesson:'', startTopic:'', endTopic:'', startSubtopic:'Introduction', endSubtopic:'' };
+  document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('selected'));
+  el?.classList.add('selected');
+  if(document.getElementById('page-app').classList.contains('active')) renderStep(1);
+}
+
+// ═══════════════════════════════════════
+// STEP RENDERER
+// ═══════════════════════════════════════
+function stepBar() {
+  const steps = [
+    { n:1, label:'Parameters' },
+    { n:2, label:'Term Activities' },
+    { n:3, label:'Generate' },
+    { n:4, label:'Download' }
+  ];
+  return `<div class="step-bar">${steps.map(s => {
+    const cls = APP.step===s.n ? 'active' : APP.step>s.n ? 'done' : '';
+    return `<div class="step ${cls}" onclick="${APP.step>s.n?`renderStep(${s.n})`:''}">${s.label}</div>`;
+  }).join('')}</div>`;
+}
+
+function subjectHeader() {
+  const levelLabel = {primary:'Primary School',junior:'Junior School (CBC)',senior:'Senior School'}[APP.level];
+  const sublevelLabel = APP.subLevel.replace(/([a-z])([0-9])/,'$1 $2').replace(/form/i,'Form').replace(/grade/i,'Grade').replace(/std/i,'Std');
+  return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:1.5rem;flex-wrap:wrap">
+    <h2 style="font-size:18px;font-weight:700">${APP.subject}</h2>
+    <span class="badge badge-blue">${APP.system}</span>
+    <span style="font-size:13px;color:var(--text-muted)">${levelLabel} · ${sublevelLabel}</span>
+  </div>`;
+}
+
+function renderStep(n) {
+  APP.step = n;
+  const main = document.getElementById('app-main');
+  if(!APP.subject) return;
+  const topics = TOPICS[APP.subject] || ['Topic 1','Topic 2','Topic 3'];
+  const subLevels = SUB_LEVELS[APP.level] || [];
+
+  if(n===1) {
+    const doubleLessonOpts = ['','Lesson 1 & 2','Lesson 2 & 3','Lesson 3 & 4','Lesson 4 & 5','Lesson 5 & 6'];
+    main.innerHTML = stepBar() + subjectHeader() + `
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+        Class &amp; Schedule Parameters
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Class / Grade</label>
+          <select class="form-input form-select" id="p-grade">${subLevels.map((g,i)=>`<option ${i===subLevels.length-1?'selected':''}>${g}</option>`).join('')}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Term</label>
+          <select class="form-input form-select" id="p-term">
+            <option value="1">Term 1</option><option value="2">Term 2</option><option value="3">Term 3</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lessons per week</label>
+          <input class="form-input" type="number" id="p-lpw" value="5" min="1" max="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Number of teaching weeks</label>
+          <input class="form-input" type="number" id="p-weeks" value="12" min="4" max="20">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Learning starts from week</label>
+          <input class="form-input" type="number" id="p-startw" value="1" min="1" max="4">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Double lesson (which lesson in the week?)</label>
+          <select class="form-input form-select" id="p-double">${doubleLessonOpts.map(o=>`<option value="${o}">${o||'No double lesson'}</option>`).join('')}</select>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg></div>
+        Topic Coverage Range
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Start from topic</label>
+          <select class="form-input form-select" id="p-starttopic">${topics.map(t=>`<option>${t}</option>`).join('')}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">End at topic</label>
+          <select class="form-input form-select" id="p-endtopic">${topics.map((t,i)=>`<option ${i===topics.length-1?'selected':''}>${t}</option>`).join('')}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Start from subtopic</label>
+          <input class="form-input" type="text" id="p-startsubtopic" placeholder="e.g. Introduction" value="Introduction">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End at subtopic</label>
+          <input class="form-input" type="text" id="p-endsubtopic" placeholder="e.g. Revision">
+        </div>
+      </div>
+    </div>
+    <div class="action-row">
+      <button class="btn btn-primary" onclick="saveStep1()">Continue to Term Activities →</button>
+    </div>`;
+  }
+
+  if(n===2) {
+    const lpw = APP.params.lessonsPerWeek || 5;
+    const lsnOpts = Array.from({length:lpw},(_,i)=>`<option value="${i+1}">Lesson ${i+1}</option>`).join('');
+    main.innerHTML = stepBar() + subjectHeader() + `
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+        Term Interruptions &amp; Activities
+      </div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Add midterms, CATs, exams, public holidays, sports days, or any other planned breaks that will affect teaching during the term.</p>
+      <div id="breaks-container"></div>
+      <button class="btn btn-sm" onclick="addBreak(${lpw})" style="margin-top:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        Add break / activity
+      </button>
+    </div>
+    <div class="action-row">
+      <button class="btn" onclick="renderStep(1)">← Back</button>
+      <button class="btn btn-primary" onclick="renderStep(3)">Generate Scheme of Work →</button>
+    </div>`;
+    renderBreaks(lpw);
+  }
+
+  if(n===3) {
+    main.innerHTML = stepBar() + subjectHeader() + `
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg></div>
+        Ready to Generate
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+        <div><span style="font-size:12px;color:var(--text-muted);display:block">Subject</span><strong>${APP.subject}</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);display:block">Class</span><strong>${APP.params.grade} — Term ${APP.params.term}</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);display:block">Schedule</span><strong>${APP.params.lessonsPerWeek} lessons/week × ${APP.params.weeks} weeks</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);display:block">Breaks</span><strong>${APP.breaks.length} planned interruption(s)</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);display:block">Topics</span><strong>${APP.params.startTopic}</strong></div>
+        <div><span style="font-size:12px;color:var(--text-muted);display:block">Ending at</span><strong>${APP.params.endTopic}</strong></div>
+        ${APP.params.doubleLesson ? `<div class="form-full"><span style="font-size:12px;color:var(--text-muted);display:block">Double lesson</span><strong>${APP.params.doubleLesson} each week</strong></div>` : ''}
+      </div>
+      <div class="action-row" style="border:none;padding:0;margin:0">
+        <button class="btn" onclick="renderStep(2)">← Back</button>
+        <button class="btn btn-primary btn-lg" onclick="runGeneration()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          Generate with AI
+        </button>
+      </div>
+    </div>`;
+  }
+
+  if(n===4) {
+    const hasData = !!APP.generated;
+    const balance = APP.currentUser?.wallet || 0;
+    const prices = DB.pricing;
+    main.innerHTML = stepBar() + subjectHeader() +
+    `<div class="wallet-strip">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 010-4h11v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg>
+      <div><div class="wallet-label">Wallet balance</div><div class="wallet-amount">KES ${balance.toFixed(2)}</div></div>
+      <button class="btn btn-sm btn-outline" style="margin-left:auto" onclick="openTopupModal()">Top Up</button>
+    </div>` +
+    (hasData ? `
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+        Scheme Preview <span class="badge badge-blue" style="margin-left:4px">Generated</span>
+      </div>
+      <div class="sow-table-wrap">${buildTable()}</div>
+    </div>
+    <div class="card">
+      <div class="card-title">
+        <div class="card-title-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg></div>
+        Download Document
+      </div>
+      ${balance < Math.min(prices.pdf, prices.docx) ? `<div class="alert alert-error"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>Insufficient wallet balance. Please top up to download.</div>` : ''}
+      <div class="dl-grid">
+        <div class="dl-card ${balance<prices.pdf?'disabled':''}" onclick="${balance>=prices.pdf?'downloadDoc(\'pdf\')':''}">
+          <div class="dl-icon pdf"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 21H17a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path d="M10 13c0 1.105.895 2 2 2s2-.895 2-2-.895-2-2-2-2 .895-2 2zm4 2l2 2m-8-5h2m4 0h1"/></svg></div>
+          <div class="dl-name">PDF Document</div>
+          <div class="dl-price">KES ${prices.pdf} from wallet</div>
+          <div class="dl-desc">Print-ready, non-editable</div>
+        </div>
+        <div class="dl-card ${balance<prices.docx?'disabled':''}" onclick="${balance>=prices.docx?'downloadDoc(\'docx\')':''}">
+          <div class="dl-icon docx"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 21H17a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path d="M9 17l1-4 2 3 2-3 1 4"/></svg></div>
+          <div class="dl-name">Word Document</div>
+          <div class="dl-price">KES ${prices.docx} from wallet</div>
+          <div class="dl-desc">Editable .docx file</div>
+        </div>
+        <div class="dl-card ${balance<prices.zip?'disabled':''}" onclick="${balance>=prices.zip?'downloadDoc(\'zip\')':''}">
+          <div class="dl-icon zip"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M7 21H17a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path d="M12 3v6h6M9 12h6M9 16h6"/></svg></div>
+          <div class="dl-name">ZIP Bundle</div>
+          <div class="dl-price">KES ${prices.zip} from wallet</div>
+          <div class="dl-desc">PDF + DOCX + CSV in one zip</div>
+        </div>
+      </div>
+    </div>` : '<div class="alert alert-info">No scheme generated yet.</div>');
+  }
+}
+
+function saveStep1() {
+  APP.params.grade = document.getElementById('p-grade').value;
+  APP.params.term = parseInt(document.getElementById('p-term').value);
+  APP.params.lessonsPerWeek = parseInt(document.getElementById('p-lpw').value);
+  APP.params.weeks = parseInt(document.getElementById('p-weeks').value);
+  APP.params.startWeek = parseInt(document.getElementById('p-startw').value);
+  APP.params.doubleLesson = document.getElementById('p-double').value;
+  APP.params.startTopic = document.getElementById('p-starttopic').value;
+  APP.params.endTopic = document.getElementById('p-endtopic').value;
+  APP.params.startSubtopic = document.getElementById('p-startsubtopic').value;
+  APP.params.endSubtopic = document.getElementById('p-endsubtopic').value;
+  renderStep(2);
+}
+
+// ═══════════════════════════════════════
+// BREAKS
+// ═══════════════════════════════════════
+function addBreak(lpw) {
+  APP.breaks.push({ type:'Midterm', week: Math.ceil(APP.params.weeks/2), wholeWeek: true, startLesson: 1, lpw });
+  renderBreaks(lpw);
+}
+
+function removeBreak(i) { APP.breaks.splice(i,1); renderBreaks(APP.params.lessonsPerWeek); }
+
+function renderBreaks(lpw) {
+  const c = document.getElementById('breaks-container');
+  if(!c) return;
+  if(!APP.breaks.length) { c.innerHTML = '<p style="font-size:13px;color:var(--text-muted);padding:4px 0">No breaks added.</p>'; return; }
+  c.innerHTML = APP.breaks.map((b,i) => {
+    const wkOpts = Array.from({length:APP.params.weeks||12},(_,j)=>`<option value="${j+1}" ${b.week===j+1?'selected':''}>Week ${j+1}</option>`).join('');
+    const lsnOpts = Array.from({length:lpw||5},(_,k)=>`<option value="${k+1}" ${b.startLesson===k+1?'selected':''}>Lesson ${k+1}</option>`).join('');
+    return `<div class="break-row">
+      <div><label>Type</label>
+        <select onchange="APP.breaks[${i}].type=this.value">
+          ${['Midterm','CAT / Test','Final Exam','Public Holiday','Sports Day','Prize Giving','Other'].map(t=>`<option ${b.type===t?'selected':''}>${t}</option>`).join('')}
+        </select>
+      </div>
+      <div><label>Week</label><select onchange="APP.breaks[${i}].week=+this.value">${wkOpts}</select></div>
+      <div><label>Whole week?</label>
+        <select onchange="APP.breaks[${i}].wholeWeek=this.value==='Yes';renderBreaks(${lpw})">
+          <option ${b.wholeWeek?'selected':''}>Yes</option><option ${!b.wholeWeek?'selected':''}>No</option>
+        </select>
+      </div>
+      <div><label>From lesson</label>
+        <select ${b.wholeWeek?'disabled':''} onchange="APP.breaks[${i}].startLesson=+this.value">${lsnOpts}</select>
+      </div>
+      <button class="btn btn-sm btn-danger" onclick="removeBreak(${i})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════
+// AI GENERATION
+// ═══════════════════════════════════════
+async function runGeneration() {
+  const main = document.getElementById('app-main');
+  const isCBC = APP.system === 'CBC';
+  const breakStr = APP.breaks.map(b=>`Week ${b.week}: ${b.type} (${b.wholeWeek?'entire week':'from lesson '+b.startLesson})`).join('; ') || 'None';
+  const doubleStr = APP.params.doubleLesson ? `There is a double lesson at ${APP.params.doubleLesson} every week.` : 'No double lesson.';
+
+  main.innerHTML = `<div class="spinner-wrap">
+    <div class="spinner"></div>
+    <div style="font-size:15px;font-weight:600;color:var(--gray-700)">Generating Scheme of Work…</div>
+    <div style="font-size:13px;color:var(--text-muted)">AI is building your term plan</div>
+    <div class="gen-steps">
+      <div class="gen-step done"><span class="gen-step-dot"></span>Reading curriculum parameters</div>
+      <div class="gen-step active" id="gs2"><span class="gen-step-dot"></span>Mapping topics to weeks</div>
+      <div class="gen-step" id="gs3"><span class="gen-step-dot"></span>Generating objectives and activities</div>
+      <div class="gen-step" id="gs4"><span class="gen-step-dot"></span>Compiling references and resources</div>
+    </div>
+  </div>`;
+
+  setTimeout(() => {
+    const gs2 = document.getElementById('gs2'); const gs3 = document.getElementById('gs3');
+    if(gs2) { gs2.classList.remove('active'); gs2.classList.add('done'); }
+    if(gs3) gs3.classList.add('active');
+  }, 1200);
+  setTimeout(() => {
+    const gs3 = document.getElementById('gs3'); const gs4 = document.getElementById('gs4');
+    if(gs3) { gs3.classList.remove('active'); gs3.classList.add('done'); }
+    if(gs4) gs4.classList.add('active');
+  }, 2400);
+
+  const prompt = isCBC
+    ? `You are a Kenya KICD curriculum expert. Generate a CBC scheme of work for:
+Subject: ${APP.subject}
+Class: ${APP.params.grade}, Term ${APP.params.term}
+Lessons per week: ${APP.params.lessonsPerWeek} (${doubleStr})
+Teaching weeks: ${APP.params.weeks} (starting from week ${APP.params.startWeek})
+Topics: from "${APP.params.startTopic}" (subtopic: ${APP.params.startSubtopic||'Introduction'}) to "${APP.params.endTopic}"
+Planned breaks: ${breakStr}
+
+Return ONLY a valid JSON array. No markdown, no explanation. Each element:
+{"wk":"1","lsn":"1","strand":"strand name","substrand":"substrand name","outcomes":"By end of lesson learner should be able to: ...","inquiry":"Why...?","experiences":"Learner is guided to: ...","resources":"resource list","assessment":"QA, Written tests, Portfolio","refl":""}
+
+Generate 12-18 rows. Skip break weeks (mark them as {"wk":"X","lsn":"","strand":"","substrand":"BREAK: ${'{type}'}","outcomes":"","inquiry":"","experiences":"","resources":"","assessment":"","refl":""}). Be specific and Kenya-curriculum-accurate.`
+    : `You are a Kenya KICD curriculum expert. Generate an 8-4-4 scheme of work for:
+Subject: ${APP.subject}
+Class: ${APP.params.grade}, Term ${APP.params.term}
+Lessons per week: ${APP.params.lessonsPerWeek} (${doubleStr})
+Teaching weeks: ${APP.params.weeks} (starting from week ${APP.params.startWeek})
+Topics: from "${APP.params.startTopic}" (subtopic: ${APP.params.startSubtopic||'Introduction'}) to "${APP.params.endTopic}"
+Planned breaks: ${breakStr}
+
+Return ONLY a valid JSON array. No markdown, no explanation. Each element:
+{"wk":"1","lsn":"1-3","topic":"topic name","subtopic":"subtopic name","objectives":"By end of lesson learner should be able to: ...","activities":"description of learning activities","aids":"teaching/learning aids list","reference":"textbook and page references","remarks":""}
+
+Generate 12-18 rows. For break weeks use: {"wk":"X","lsn":"","topic":"BREAK","subtopic":"${'{type}'}","objectives":"","activities":"","aids":"","reference":"","remarks":""}. Distribute lessons correctly across weeks based on lessons per week. Be specific and Kenya-curriculum-accurate for the exact subject and class.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+        messages: [{ role:'user', content: prompt }] })
+    });
+    const data = await res.json();
+    let text = (data.content||[]).map(x=>x.text||'').join('');
+    text = text.replace(/```json|```/g,'').trim();
+    const rows = JSON.parse(text);
+    APP.generated = rows;
+
+    // Log usage
+    if(APP.currentUser) {
+      APP.currentUser.history.push({ subject: APP.subject, grade: APP.params.grade, datetime: new Date().toISOString() });
+      const stat = DB.docStats.find(d=>d.subject===`${APP.subject} ${APP.params.grade}`);
+      if(stat) stat.count++; else DB.docStats.push({ subject:`${APP.subject} ${APP.params.grade}`, system:APP.system, count:1 });
+    }
+    APP.step = 4;
+    renderStep(4);
+  } catch(e) {
+    main.innerHTML = `<div class="card">
+      <div class="alert alert-error">Generation failed: ${e.message}. Please try again.</div>
+      <div class="action-row"><button class="btn" onclick="renderStep(3)">← Back</button></div>
+    </div>`;
+  }
+}
+
+// ═══════════════════════════════════════
+// TABLE BUILDER
+// ═══════════════════════════════════════
+function buildTable() {
+  if(!APP.generated) return '';
+  const isCBC = APP.system === 'CBC';
+  const headers = isCBC
+    ? ['Wk','Lsn','Strand','Sub-Strand','Lesson Learning Outcomes','Key Inquiry Questions','Learning Experiences','Learning Resources','Assessment Methods','Refl']
+    : ['Wk','Lsn','Topic','Sub-Topic','Objectives','L/Activities','L/T Aids','Reference','Remarks'];
+  const keys = isCBC
+    ? ['wk','lsn','strand','substrand','outcomes','inquiry','experiences','resources','assessment','refl']
+    : ['wk','lsn','topic','subtopic','objectives','activities','aids','reference','remarks'];
+
+  const rows = APP.generated.map(r => {
+    const isBreak = (r.topic||r.strand||'').toUpperCase().includes('BREAK');
+    const cls = isBreak ? 'class="break-week"' : '';
+    return `<tr ${cls}>${keys.map((k,i) => `<td class="${i===0?'wk':''}">${r[k]||''}</td>`).join('')}</tr>`;
+  }).join('');
+
+  return `<table class="sow-table"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// ═══════════════════════════════════════
+// DOWNLOAD
+// ═══════════════════════════════════════
+async function downloadDoc(type) {
+  if(!APP.currentUser || !APP.generated) return;
+  const prices = DB.pricing;
+  const cost = prices[type];
+  if(APP.currentUser.wallet < cost) { alert(`Insufficient balance. You need KES ${cost} but have KES ${APP.currentUser.wallet.toFixed(2)}.`); openTopupModal(); return; }
+
+  APP.currentUser.wallet -= cost;
+  DB.transactions.push({ id:'t'+Date.now(), user:APP.currentUser.id, amount:cost, type:'debit', method:'wallet', ref:'SOW-'+Date.now(), datetime:new Date().toISOString(), tag:'payment' });
+
+  const isCBC = APP.system === 'CBC';
+  const docTitle = `${APP.subject} ${APP.params.grade} Term ${APP.params.term} Scheme of Work`;
+  const headers = isCBC
+    ? ['Wk','Lsn','Strand','Sub-Strand','Lesson Learning Outcomes','Key Inquiry Questions','Learning Experiences','Learning Resources','Assessment Methods','Refl']
+    : ['Wk','Lsn','Topic','Sub-Topic','Objectives','L/Activities','L/T Aids','Reference','Remarks'];
+  const keys = isCBC
+    ? ['wk','lsn','strand','substrand','outcomes','inquiry','experiences','resources','assessment','refl']
+    : ['wk','lsn','topic','subtopic','objectives','activities','aids','reference','remarks'];
+
+  // Build CSV
+  const csvLines = [headers.join(','), ...APP.generated.map(r => keys.map(k=>`"${(r[k]||'').replace(/"/g,'""')}"`).join(','))];
+  const csvContent = csvLines.join('\n');
+
+  // Build HTML for PDF/DOCX
+  const tableHTML = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+<style>body{font-family:Arial,sans-serif;font-size:10px;margin:20px}h2,h3{color:#1D4ED8}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#1D4ED8;color:#fff;padding:5px 7px;font-size:9px;text-align:left}td{padding:5px 7px;border:1px solid #ddd;vertical-align:top}tr:nth-child(even)td{background:#f5f8ff}.meta{margin-bottom:8px;font-size:11px;color:#555}</style>
+</head><body>
+<h2>${docTitle}</h2>
+<h3>Term ${APP.params.term} — ${APP.params.lessonsPerWeek} lessons/week × ${APP.params.weeks} weeks</h3>
+<div class="meta"><strong>Teacher:</strong> ${APP.currentUser.name} &nbsp;|&nbsp; <strong>Generated:</strong> ${new Date().toLocaleDateString('en-KE')}</div>
+<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+<tbody>${APP.generated.map(r=>`<tr>${keys.map(k=>`<td>${r[k]||''}</td>`).join('')}</tr>`).join('')}</tbody></table>
+</body></html>`;
+
+  // Build DOCX-style XML (simplified RTF that Word opens)
+  const rtfRows = APP.generated.map(r => keys.map(k => r[k]||'').join(' | ')).join('\n');
+  const txtContent = `${docTitle}\nTerm ${APP.params.term}\nTeacher: ${APP.currentUser.name}\nGenerated: ${new Date().toLocaleDateString('en-KE')}\n\n${headers.join(' | ')}\n${'─'.repeat(120)}\n${rtfRows}`;
+
+  if(type === 'zip') {
+    const zip = new JSZip();
+    zip.file(`${docTitle}.html`, tableHTML);
+    zip.file(`${docTitle}.csv`, csvContent);
+    zip.file(`${docTitle}.txt`, txtContent);
+    zip.file('README.txt', `SchemePro — ${docTitle}\n\nThis ZIP contains:\n- .html  → Open in browser, print as PDF\n- .csv   → Open in Excel/Sheets\n- .txt   → Plain text version\n\nGenerated: ${new Date().toLocaleDateString('en-KE')}\nTeacher: ${APP.currentUser.name}`);
+    const blob = await zip.generateAsync({ type:'blob' });
+    triggerDownload(blob, `${docTitle}.zip`, 'application/zip');
+  } else if(type === 'pdf') {
+    const blob = new Blob([tableHTML], { type: 'text/html' });
+    triggerDownload(blob, `${docTitle}.html`, 'text/html');
+    alert('Your scheme of work has been downloaded as an HTML file. Open it in your browser and use File → Print → Save as PDF to get a PDF.');
+  } else {
+    const blob = new Blob([txtContent], { type:'text/plain' });
+    triggerDownload(blob, `${docTitle}.txt`, 'text/plain');
+    alert('Your scheme of work has been downloaded as a text file. In a full deployment this would be a properly formatted .docx file.');
+  }
+
+  renderStep(4);
+}
+
+function triggerDownload(blob, filename, mime) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ═══════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════
+function showAdminPanel() {
+  if(!APP.currentUser || !['admin','superuser'].includes(APP.currentUser.role)) return;
+  showPage('admin');
+  showAdminTab('overview', document.querySelector('.admin-tab'));
+}
+
+function showAdminTab(tab, el) {
+  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
+  el?.classList.add('active');
+  const c = document.getElementById('admin-tab-content');
+
+  if(tab==='overview') {
+    const totalRevenue = DB.transactions.filter(t=>t.type==='debit'&&t.tag==='payment').reduce((a,t)=>a+t.amount,0);
+    const totalDeposits = DB.transactions.filter(t=>t.type==='credit').reduce((a,t)=>a+t.amount,0);
+    const potentialRevenue = DB.users.reduce((a,u)=>a+u.wallet,0);
+    const totalDocs = DB.docStats.reduce((a,d)=>a+d.count,0);
+    c.innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-val">${DB.users.length}</div><div class="stat-label">Total Users</div></div>
+      <div class="stat-card"><div class="stat-val">${totalDocs.toLocaleString()}</div><div class="stat-label">Docs Generated</div></div>
+      <div class="stat-card"><div class="stat-val">KES ${totalRevenue.toLocaleString()}</div><div class="stat-label">Actual Revenue</div></div>
+      <div class="stat-card"><div class="stat-val">KES ${potentialRevenue.toLocaleString()}</div><div class="stat-label">Wallet Balance (Potential)</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+      <div class="card">
+        <div class="card-title">Top Generated Subjects</div>
+        ${DB.docStats.sort((a,b)=>b.count-a.count).slice(0,5).map(d=>`
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px">
+          <span style="flex:1;color:var(--gray-700)">${d.subject}</span>
+          <span class="badge badge-blue">${d.system}</span>
+          <strong>${d.count}</strong>
+          <div style="width:80px;height:4px;background:var(--gray-100);border-radius:2px"><div style="width:${Math.round(d.count/DB.docStats[0].count*100)}%;height:100%;background:var(--blue-500);border-radius:2px"></div></div>
+        </div>`).join('')}
+      </div>
+      <div class="card">
+        <div class="card-title">Recent Transactions</div>
+        <table class="admin-table">
+          <thead><tr><th>User</th><th>Type</th><th>Amount</th><th>Time</th></tr></thead>
+          <tbody>${DB.transactions.slice(-5).reverse().map(t=>{
+            const u = DB.users.find(x=>x.id===t.user);
+            return `<tr><td>${u?.name||'Unknown'}</td><td><span class="badge ${t.type==='credit'?'badge-green':'badge-amber'}">${t.type}</span></td><td>KES ${t.amount}</td><td style="color:var(--text-muted);font-size:12px">${new Date(t.datetime).toLocaleString('en-KE',{dateStyle:'short',timeStyle:'short'})}</td></tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
+  if(tab==='users') {
+    c.innerHTML = `<div class="card">
+      <div class="card-title">User Management</div>
+      <table class="admin-table">
+        <thead><tr><th>User</th><th>Role</th><th>Wallet</th><th>Last Active</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>${DB.users.map(u=>`
+        <tr>
+          <td><div style="display:flex;align-items:center;gap:8px">
+            <div class="user-avatar">${u.name.split(' ').map(x=>x[0]).join('').slice(0,2)}</div>
+            <div><div style="font-weight:500">${u.name}</div><div style="font-size:12px;color:var(--text-muted)">${u.email}</div></div>
+          </div></td>
+          <td><span class="badge ${u.role==='superuser'?'badge-blue':u.role==='admin'?'badge-green':'badge-amber'}">${u.role}</span></td>
+          <td>KES ${u.wallet.toFixed(2)}</td>
+          <td style="font-size:12px;color:var(--text-muted)">${new Date(u.lastActive).toLocaleString('en-KE',{dateStyle:'short',timeStyle:'short'})}</td>
+          <td><span class="status-dot online"></span>Active</td>
+          <td style="display:flex;gap:4px">
+            <button class="btn btn-sm">Edit</button>
+            <button class="btn btn-sm btn-danger" onclick="adminDeleteUser('${u.id}')">Disable</button>
+          </td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  if(tab==='revenue') {
+    const totalRevenue = DB.transactions.filter(t=>t.type==='debit'&&t.tag==='payment').reduce((a,t)=>a+t.amount,0);
+    const totalDeposits = DB.transactions.filter(t=>t.type==='credit').reduce((a,t)=>a+t.amount,0);
+    const potentialRevenue = DB.users.reduce((a,u)=>a+u.wallet,0);
+    c.innerHTML = `
+    <div class="revenue-row">
+      <div class="rev-card"><div class="rev-val" style="color:var(--green-600)">KES ${totalRevenue.toLocaleString()}</div><div class="rev-label">Actual Revenue (spent on docs)</div><div class="rev-bar-wrap"><div class="rev-bar" style="background:var(--green-600);width:${Math.round(totalRevenue/totalDeposits*100)||0}%"></div></div></div>
+      <div class="rev-card"><div class="rev-val" style="color:var(--blue-600)">KES ${totalDeposits.toLocaleString()}</div><div class="rev-label">Total Wallet Deposits</div><div class="rev-bar-wrap"><div class="rev-bar" style="width:100%"></div></div></div>
+      <div class="rev-card"><div class="rev-val" style="color:var(--amber-600)">KES ${potentialRevenue.toLocaleString()}</div><div class="rev-label">Potential Revenue (wallet balances)</div><div class="rev-bar-wrap"><div class="rev-bar" style="background:var(--amber-600);width:${Math.round(potentialRevenue/totalDeposits*100)||0}%"></div></div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">All Transactions</div>
+      <table class="admin-table">
+        <thead><tr><th>Ref</th><th>User</th><th>Type</th><th>Method</th><th>Amount</th><th>Date</th></tr></thead>
+        <tbody>${DB.transactions.map(t=>{
+          const u=DB.users.find(x=>x.id===t.user);
+          return `<tr><td style="font-size:11px;color:var(--text-muted)">${t.ref}</td><td>${u?.name||'?'}</td><td><span class="badge ${t.type==='credit'?'badge-green':'badge-amber'}">${t.type==='credit'?'Deposit':'Payment'}</span></td><td>${t.method}</td><td style="font-weight:600">KES ${t.amount}</td><td style="font-size:12px;color:var(--text-muted)">${new Date(t.datetime).toLocaleString('en-KE',{dateStyle:'medium',timeStyle:'short'})}</td></tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  }
+
+  if(tab==='content') {
+    c.innerHTML = `<div class="card">
+      <div class="card-title">Curriculum Content Management</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+        ${[['Add Level','e.g. Junior School'],['Add Sub-Level','e.g. Grade 8'],['Add Subject','e.g. Agriculture'],['Add Topic','e.g. Soil Science'],['Add Sub-Topic','e.g. Soil Types'],['Add Content','Lesson content & KIQs']].map(([l,ph])=>`
+        <div class="card" style="box-shadow:none">
+          <div style="font-size:13px;font-weight:600;margin-bottom:8px">${l}</div>
+          <input class="form-input" placeholder="${ph}" style="margin-bottom:8px">
+          <button class="btn btn-sm btn-primary">Save ${l.replace('Add ','')}</button>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  if(tab==='pricing') {
+    c.innerHTML = `<div class="card" style="max-width:400px">
+      <div class="card-title">Document Download Pricing</div>
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:1rem">Set the amount deducted from user wallets per document download.</p>
+      ${['pdf','docx','zip'].map(t=>`
+      <div class="form-group">
+        <label class="form-label">${t.toUpperCase()} — Price (KES)</label>
+        <input class="form-input" type="number" value="${DB.pricing[t]}" id="price-${t}">
+      </div>`).join('')}
+      <button class="btn btn-primary" onclick="savePricing()">Save Pricing</button>
+      <div id="pricing-saved" class="alert alert-success" style="display:none;margin-top:8px">Pricing saved successfully.</div>
+    </div>`;
+  }
+}
+
+function savePricing() {
+  DB.pricing.pdf = parseFloat(document.getElementById('price-pdf').value) || 30;
+  DB.pricing.docx = parseFloat(document.getElementById('price-docx').value) || 50;
+  DB.pricing.zip = parseFloat(document.getElementById('price-zip').value) || 70;
+  document.getElementById('pricing-saved').style.display = 'flex';
+}
+
+function adminDeleteUser(id) {
+  if(id === APP.currentUser?.id) { alert("You can't disable yourself."); return; }
+  if(confirm('Disable this user?')) { const u=DB.users.find(x=>x.id===id); if(u) alert(`User ${u.name} has been disabled (UI only in demo).`); }
+}
+
+// ═══════════════════════════════════════
+// FAQ
+// ═══════════════════════════════════════
+const FAQS = [
+  ['What is SchemePro?','SchemePro is an AI-powered scheme of work generator for Kenyan teachers, aligned with KICD and Ministry of Education guidelines for both 8-4-4 and CBC curriculum systems.'],
+  ['Which curriculum systems are supported?','Both the traditional 8-4-4 system (Primary and Secondary) and the Competency-Based Curriculum (CBC/CBE) for Junior School (Grade 7–9) are fully supported with appropriate table formats.'],
+  ['How do I pay for downloads?','You top up your wallet using M-Pesa, Pesapal, card, or bank transfer. A small amount is deducted per download (PDF, DOCX, or ZIP bundle).'],
+  ['Can I edit the generated scheme?','Yes. Download as a Word document (.docx) and edit freely in Microsoft Word or Google Docs.'],
+  ['What is the ZIP bundle?','The ZIP bundle includes a print-ready HTML file (printable as PDF), a CSV file (opens in Excel/Google Sheets), and a plain text version — all in one download.'],
+  ['Is the content curriculum-accurate?','The AI is trained to follow KICD standards and generates subject-specific content. Always review and adjust to your school\'s specific approved scheme.'],
+  ['Can the admin set document prices?','Yes. Admins and super admins can configure per-format pricing from the Admin Dashboard under "Document Pricing".'],
+  ['How do I get an admin account?','Contact us at support@schemepro.co.ke. Admin accounts are assigned by the system superuser.']
+];
+
+function renderFAQ() {
+  const c = document.getElementById('faq-container');
+  if(!c || c.children.length) return;
+  c.innerHTML = FAQS.map((f,i) => `
+  <div class="faq-item">
+    <div class="faq-q" onclick="toggleFAQ(${i})">
+      ${f[0]}
+      <span id="faq-arrow-${i}" style="font-size:18px;transition:transform .2s">›</span>
+    </div>
+    <div class="faq-a" id="faq-a-${i}">${f[1]}</div>
+  </div>`).join('');
+}
+
+function toggleFAQ(i) {
+  const a = document.getElementById('faq-a-'+i);
+  const arr = document.getElementById('faq-arrow-'+i);
+  const open = a.classList.toggle('open');
+  arr.style.transform = open ? 'rotate(90deg)' : '';
+}
+</script>
+</body>
+</html>

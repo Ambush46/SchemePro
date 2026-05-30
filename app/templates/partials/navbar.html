@@ -1,0 +1,27 @@
+<nav>
+  <div class="nav-logo" onclick="location.href='/'">
+    <div class="nav-logo-icon">S</div>
+    SchemePro
+  </div>
+  <div class="nav-links">
+    <button class="nav-link {% if request.path == '/' %}active{% endif %}" onclick="location.href='/'">Home</button>
+    <button class="nav-link {% if request.path == '/about' %}active{% endif %}" onclick="location.href='/about'">About</button>
+    <button class="nav-link {% if request.path == '/app' %}active{% endif %}" onclick="requireAuth('/app')">Generate</button>
+    {% if current_user.is_authenticated and current_user.is_admin() %}
+    <button class="nav-link {% if '/admin' in request.path %}active{% endif %}" onclick="location.href='/admin-panel'">Admin</button>
+    {% endif %}
+  </div>
+  {% if current_user.is_authenticated %}
+  <div class="nav-user">
+    <span class="text-sm text-muted">{{ current_user.name }}</span>
+    <span class="badge badge-blue">{{ current_user.role.tag }}</span>
+    <button class="btn btn-sm btn-outline" id="nav-balance-btn" onclick="openTopupModal()">Wallet: KES <span id="nav-balance">{{ '%.2f'|format(current_user.wallet_balance) }}</span></button>
+    <button class="btn btn-sm" onclick="doLogout()">Log out</button>
+  </div>
+  {% else %}
+  <div class="nav-auth">
+    <button class="btn btn-sm" onclick="openModal('login-modal')">Log in</button>
+    <button class="btn btn-sm btn-primary" onclick="openModal('register-modal')">Sign up</button>
+  </div>
+  {% endif %}
+</nav>

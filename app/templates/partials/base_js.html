@@ -1,0 +1,159 @@
+// ─── API Client ───────────────────────────────────────────────────
+const API = {
+  async request(method, url, body = null) {
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+      credentials: 'same-origin',
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(url, opts);
+    const data = await res.json();
+    if (!res.ok && !data.success) throw new Error(data.error || `HTTP ${res.status}`);
+    return data;
+  },
+  get: (url) => API.request('GET', url),
+  post: (url, body) => API.request('POST', url, body),
+  put: (url, body) => API.request('PUT', url, body),
+  delete: (url) => API.request('DELETE', url),
+};
+
+// ─── Auth ─────────────────────────────────────────────────────────
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  document.getElementById('login-error').style.display = 'none';
+  try {
+    await API.post('/auth/login', { username, password });
+    location.reload();
+  } catch (e) {
+    const el = document.getElementById('login-error');
+    el.textContent = e.message; el.style.display = 'flex';
+  }
+}
+
+async function doRegister() {
+  const body = {
+    name: document.getElementById('reg-name').value.trim(),
+    username: document.getElementById('reg-username').value.trim(),
+    email: document.getElementById('reg-email').value.trim(),
+    region: document.getElementById('reg-region')?.value.trim(),
+    password: document.getElementById('reg-pass').value,
+    confirm_password: document.getElementById('reg-pass2').value,
+  };
+  document.getElementById('register-error').style.display = 'none';
+  try {
+    await API.post('/auth/register', body);
+    location.reload();
+  } catch (e) {
+    const el = document.getElementById('register-error');
+    el.textContent = e.message; el.style.display = 'flex';
+  }
+}
+
+async function doLogout() {
+  await API.post('/auth/logout');
+  location.href = '/';
+}
+
+function requireAuth(redirect = '/app') {
+  {% if current_user.is_authenticated %}
+  location.href = redirect;
+  {% else %}
+  openModal('login-modal');
+  {% endif %}
+}
+
+// ─── Wallet ───────────────────────────────────────────────────────
+let _selectedPM = 'mpesa';
+
+function openTopupModal() {
+  {% if current_user.is_authenticated %}
+  document.getElementById('topup-balance-display').textContent =
+    'KES ' + (parseFloat(document.getElementById('nav-balance')?.textContent || '0')).toFixed(2);
+  document.getElementById('topup-error').style.display = 'none';
+  document.getElementById('topup-success').style.display = 'none';
+  openModal('topup-modal');
+  {% else %}
+  openModal('login-modal');
+  {% endif %}
+}
+
+function selectPaymentMethod(pm) {
+  _selectedPM = pm;
+  ['mpesa','pesapal','card','bank'].forEach(m => {
+    document.getElementById('pm-' + m).classList.toggle('selected', m === pm);
+    document.getElementById('pm-field-' + m).style.display = m === pm ? 'block' : 'none';
+  });
+}
+
+function ensureNotificationContainer() {
+  let el = document.getElementById('app-notification-container');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'app-notification-container';
+    el.className = 'app-notification-container';
+    el.setAttribute('aria-live', 'polite');
+    document.body.appendChild(el);
+  }
+  return el;
+}
+
+function showNotification(message, type = 'info', duration = 4500) {
+  const container = ensureNotificationContainer();
+  const toast = document.createElement('div');
+  const label = type === 'error' ? 'Error' : type === 'success' ? 'Success' : 'Info';
+  toast.className = `app-notification app-notification-${type}`;
+  toast.innerHTML = `
+    <div class="app-notification-content">
+      <strong>${label}</strong>
+      <span>${message}</span>
+    </div>
+    <button class="app-notification-close" aria-label="Dismiss notification">×</button>`;
+  container.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add('show'));
+
+  const dismiss = () => {
+    toast.classList.remove('show');
+    toast.classList.add('hide');
+    setTimeout(() => toast.remove(), 220);
+  };
+
+  toast.querySelector('.app-notification-close').addEventListener('click', dismiss);
+  if (duration !== null) {
+    setTimeout(dismiss, duration);
+  }
+}
+
+async function doTopup() {
+  const amount = parseFloat(document.getElementById('topup-amount').value);
+  if (!amount || amount < 1) {
+    const el = document.getElementById('topup-error');
+    el.textContent = 'Enter a valid amount (minimum KES 1).'; el.style.display = 'flex';
+    return;
+  }
+  // Get reference based on method
+  const refs = { mpesa: 'mpesa-phone', pesapal: 'pesapal-contact', card: 'card-number', bank: 'bank-ref' };
+  const reference = document.getElementById(refs[_selectedPM])?.value.trim() || '';
+  document.getElementById('topup-error').style.display = 'none';
+  document.getElementById('topup-success').style.display = 'none';
+
+  try {
+    const data = await API.post('/wallet/topup', { amount, method: _selectedPM, reference });
+    const el = document.getElementById('topup-success');
+    el.textContent = `KES ${amount.toFixed(2)} added. New balance: KES ${data.new_balance.toFixed(2)}`;
+    el.style.display = 'flex';
+    if (document.getElementById('nav-balance'))
+      document.getElementById('nav-balance').textContent = data.new_balance.toFixed(2);
+    setTimeout(() => closeModal('topup-modal'), 2500);
+  } catch (e) {
+    const el = document.getElementById('topup-error');
+    el.textContent = e.message; el.style.display = 'flex';
+  }
+}
+
+// ─── Modal helpers ────────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModalOutside(e, id) { if (e.target.id === id) closeModal(id); }
+function switchModal(from, to) { closeModal(from); openModal(to); }

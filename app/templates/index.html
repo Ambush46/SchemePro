@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<style>
+.hero{background:linear-gradient(135deg,#1E3A8A 0%,#1D4ED8 60%,#3B82F6 100%);color:#fff;padding:5rem 2rem 4rem;text-align:center}
+.hero-badge{display:inline-block;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);border-radius:99px;padding:4px 16px;font-size:12px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:1.5rem}
+.hero h1{font-size:clamp(28px,5vw,52px);font-weight:800;line-height:1.15;margin-bottom:1rem}
+.hero-sub{font-size:18px;opacity:.85;max-width:580px;margin:0 auto 2rem}
+.hero-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-white{background:#fff;color:#1D4ED8;border-color:#fff;font-weight:600}
+.btn-white:hover{background:#EFF6FF}
+.btn-ghost{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.3)}
+.btn-ghost:hover{background:rgba(255,255,255,.2)}
+section{padding:4rem 2rem;max-width:1100px;margin:0 auto}
+.sec-title{font-size:26px;font-weight:700;margin-bottom:8px}
+.sec-sub{color:var(--gray-500);margin-bottom:2.5rem}
+.gray-section{background:var(--gray-50);border-top:1px solid var(--gray-200);border-bottom:1px solid var(--gray-200);padding:3rem 2rem}
+/* Levels */
+.levels-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.level-card{border:1px solid var(--gray-200);border-radius:var(--radius-lg);overflow:hidden;transition:box-shadow .15s,transform .15s}
+.level-card:hover{box-shadow:var(--shadow-md);transform:translateY(-2px)}
+.lhdr{padding:12px 16px;font-weight:700;font-size:13px;letter-spacing:.02em}
+.lhdr-primary{background:var(--blue-50);color:var(--blue-800);border-bottom:1px solid var(--blue-100)}
+.lhdr-junior{background:#F0FDF4;color:#166534;border-bottom:1px solid #BBF7D0}
+.lhdr-senior{background:#FFF7ED;color:#9A3412;border-bottom:1px solid #FED7AA}
+.subj-list{padding:.5rem}
+.subj-btn{display:flex;align-items:center;gap:8px;width:100%;padding:8px 12px;border-radius:var(--radius);border:none;background:none;color:var(--gray-700);font-size:14px;cursor:pointer;text-align:left;transition:all .12s;font-family:inherit}
+.subj-btn:hover{background:var(--blue-50);color:var(--blue-700)}
+.subj-btn::before{content:'→';opacity:0;transition:opacity .12s;color:var(--blue-600);font-size:12px}
+.subj-btn:hover::before{opacity:1}
+/* Features */
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.feat-card{padding:1.5rem;border:1px solid var(--gray-200);border-radius:var(--radius-lg)}
+.feat-icon{width:42px;height:42px;background:var(--blue-50);border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:1rem;font-size:20px}
+.feat-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.feat-desc{font-size:13px;color:var(--gray-500);line-height:1.6}
+/* FAQ */
+.faq-item{border:1px solid var(--gray-200);border-radius:var(--radius);margin-bottom:8px;overflow:hidden}
+.faq-q{padding:14px 16px;font-weight:500;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.faq-q:hover{background:var(--gray-50)}
+.faq-q span{font-size:18px;transition:transform .2s}
+.faq-a{padding:0 16px;font-size:13px;color:var(--gray-500);max-height:0;overflow:hidden;transition:max-height .25s,padding .25s}
+.faq-a.open{max-height:200px;padding:12px 16px;border-top:1px solid var(--gray-200)}
+footer{background:var(--gray-900);color:var(--gray-400);padding:2rem;text-align:center;font-size:13px}
+footer a{color:#60A5FA}
+@media(max-width:768px){.levels-grid,.features-grid{grid-template-columns:1fr}}
+</style>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge">✦ KICD & MoE Kenya Standard</div>
+  <h1>Generate Professional<br>Schemes of Work Instantly</h1>
+  <p class="hero-sub">AI-powered scheme of work generator for Kenya's 8-4-4 and CBC curriculum systems. Save hours every term.</p>
+  <div class="hero-actions">
+    <button class="btn btn-lg btn-white" onclick="requireAuth('/app')">Get Started Free</button>
+    <button class="btn btn-lg btn-ghost" onclick="location.href='/about'">Learn More</button>
+  </div>
+</div>
+
+<!-- SUBJECTS FROM DB -->
+<section>
+  <div class="sec-title">Browse by Level &amp; Subject</div>
+  <p class="sec-sub">Click any subject to start generating — powered by live curriculum data</p>
+  <div class="levels-grid" id="levels-container">
+    <div class="card" style="grid-column:1/-1;text-align:center;color:var(--gray-400)">Loading subjects…</div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<div class="gray-section">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="sec-title">Why SchemePro?</div>
+    <p class="sec-sub">Built specifically for Kenyan teachers and schools</p>
+    <div class="features-grid">
+      <div class="feat-card"><div class="feat-icon">⚡</div><div class="feat-title">AI-Powered Generation</div><div class="feat-desc">Claude AI generates accurate KICD-compliant content — objectives, activities, KIQs, resources and assessment methods.</div></div>
+      <div class="feat-card"><div class="feat-icon">📚</div><div class="feat-title">Both 844 &amp; CBC Systems</div><div class="feat-desc">Correct table format for each system — 8-4-4 with topics/subtopics and CBC with strands/sub-strands and key inquiry questions.</div></div>
+      <div class="feat-card"><div class="feat-icon">📥</div><div class="feat-title">Download in 3 Formats</div><div class="feat-desc">PDF (print-ready), DOCX (editable Word document), or ZIP bundle with both — all formatted to MoE standards.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ preview -->
+<section>
+  <div class="sec-title">Frequently Asked Questions</div>
+  <div style="height:8px"></div>
+  {% set faqs = [
+    ('How do I pay for downloads?', 'Top up your wallet with M-Pesa, Pesapal, card, or bank transfer. A small amount is deducted per download, set by the administrator.'),
+    ('Which curriculum systems are supported?', 'Both the 8-4-4 system (Primary and Secondary) and the CBC/CBE system for Junior School (Grade 7–9) with correct table structures for each.'),
+    ('Is the content KICD-accurate?', 'Yes. The AI follows KICD guidelines and generates subject-specific content. Always review before submission.'),
+    ('Can I edit the generated scheme?', 'Yes — download as DOCX and edit freely in Microsoft Word or Google Docs.'),
+  ] %}
+  {% for q, a in faqs %}
+  <div class="faq-item">
+    <div class="faq-q" onclick="this.nextElementSibling.classList.toggle('open');this.querySelector('span').style.transform=this.nextElementSibling.classList.contains('open')?'rotate(90deg)':''">
+      {{ q }} <span>›</span>
+    </div>
+    <div class="faq-a">{{ a }}</div>
+  </div>
+  {% endfor %}
+  <div style="margin-top:1rem"><a href="/about">View all FAQs →</a></div>
+</section>
+
+<footer>
+  <p>© 2025 SchemePro · Built for Kenyan Teachers · <a href="/about">About</a> · <a href="#">Privacy</a></p>
+  <p style="margin-top:6px">Aligned with KICD guidelines and Kenya Ministry of Education standards</p>
+</footer>
+
+<script>
+// Load subjects from backend API, render by level
+async function loadLevels() {
+  try {
+    const data = await API.get('/api/v1/levels');
+    const container = document.getElementById('levels-container');
+    container.innerHTML = '';
+
+    const hdrs = { lower_primary:'lhdr-primary', upper_primary:'lhdr-primary', junior_cbc:'lhdr-junior', senior:'lhdr-senior' };
+    const labels = { lower_primary:'📚 Lower Primary', upper_primary:'📚 Upper Primary (844)', junior_cbc:'🌿 Junior School (CBC) Grade 7–9', senior:'🎓 Senior School (844) Form 1–4' };
+
+    // Get subjects too
+    const subjData = await API.get('/api/v1/subjects');
+    const allSubjects = subjData.data;
+
+    data.data.forEach(level => {
+      const subjects = allSubjects.filter(s => s.level_id === level.id);
+      if (!subjects.length) return;
+
+      const div = document.createElement('div');
+      div.className = 'level-card';
+      div.innerHTML = `
+        <div class="lhdr ${hdrs[level.tag] || 'lhdr-primary'}">${labels[level.tag] || level.name}</div>
+        <div class="subj-list">
+          ${subjects.map(s => `
+            <button class="subj-btn" onclick="requireAuth('/app?subject=${s.id}&name=${encodeURIComponent(s.name)}&system=${s.curriculum_system}')">
+              ${s.name}
+            </button>`).join('')}
+        </div>`;
+      container.appendChild(div);
+    });
+  } catch (e) {
+    document.getElementById('levels-container').innerHTML =
+      '<div class="alert alert-error">Failed to load subjects. Please refresh.</div>';
+  }
+}
+
+loadLevels();
+</script>
+{% endblock %}
