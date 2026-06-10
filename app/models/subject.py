@@ -20,6 +20,17 @@ class Subject(db.Model):
     sublevel = db.relationship('SubLevel', backref='subjects', lazy='joined')
     topics = db.relationship('Topic', backref='subject', lazy='dynamic', cascade='all, delete-orphan')
 
+    # Relationship to CurriculumSystem via Level -> CurriculumSystem
+    curriculum_system_obj = db.relationship(
+        'CurriculumSystem',
+        secondary='levels',
+        primaryjoin='Subject.level_id == Level.id',
+        secondaryjoin='Level.curriculum_system_id == CurriculumSystem.id',
+        viewonly=True,
+        uselist=False,
+    )
+
+
     def to_dict(self, include_topics=False):
         d = {
             'id': self.id,

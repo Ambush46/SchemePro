@@ -1,25 +1,12 @@
 # TODO
 
-## Curriculum hierarchy alignment (Education system → class/grade → subject → topic → subtopic/content)
+## Curriculum hierarchy UI updates
+- [ ] Update `app/templates/admin.html`:
+  - [ ] Subjects tab: change dropdown order to CurriculumSystem → Level → Sub-Level → (then add subject)
+  - [ ] Topics tab: change to CurriculumSystem → Level → Sub-Level → Subject → Topic name
+  - [ ] Subtopics tab: change to CurriculumSystem → Level → Sub-Level → Subject → Topic → Sub-topic name/content
+  - [ ] Update JS helper functions used by those tabs to filter subjects using `/api/v1/subjects?level_id=&sublevel_id=&curriculum_system=`
+- [x] Run `pytest` to ensure nothing broke
+- [ ] Sanity-check manual UI flow in admin page
 
-### Step 1: Inspect code paths that generate curriculum JSON
-- [ ] Locate controllers/services that fetch curriculum/subjects/topics/subtopics/content
-- [ ] Identify current API response structure
-
-### Step 2: Update DB models
-- [ ] Update `app/models/level.py` to include `curriculum_system` (CBC/844)
-- [ ] Update `app/models/subject.py` to add `sublevel_id` and relationship
-- [ ] Adjust topic/subtopic/content relationships if needed
-
-### Step 3: Migrations
-- [ ] Create Alembic migration to add new columns and constraints
-- [ ] Handle backfill / compatibility strategy for existing data
-
-### Step 4: Update queries & API responses
-- [ ] Modify controllers/services to query by `sublevel_id` and include system
-- [ ] Ensure JSON hierarchy matches requested order
-
-### Step 5: Tests & smoke run
-- [ ] Run `pytest`
-- [ ] Run migrations and smoke-check endpoints
 

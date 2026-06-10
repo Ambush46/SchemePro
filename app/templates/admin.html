@@ -66,6 +66,7 @@
     <div class="admin-nav-heading">Content</div>
     <button class="admin-nav-item" onclick="showTab('content',this)">🗂 Curriculum</button>
     <button class="admin-nav-item" onclick="showTab('pricing',this)">🏷 Pricing</button>
+
     <div class="admin-nav-heading">App</div>
     <button class="admin-nav-item" onclick="location.href='/app'">← Back to App</button>
   </div>
@@ -442,38 +443,52 @@ async function switchContentTab(tab, el) {
       <div class="form-row">
         <div class="form-group"><label class="form-label">Level Name</label><input class="form-input" id="new-level-name" placeholder="e.g. Junior School (CBC)"></div>
         <div class="form-group"><label class="form-label">Tag</label><input class="form-input" id="new-level-tag" placeholder="e.g. junior_cbc"></div>
+        <div class="form-group"><label class="form-label">Curriculum System</label>
+          <select class="form-input form-select" id="new-level-system">
+            <option value="844">844</option>
+            <option value="CBC">CBC</option>
+          </select>
+        </div>
         <button class="btn btn-primary" onclick="addLevel()">Add Level</button>
       </div>
       <hr>
       <div class="card-title" style="margin-top:1rem">Existing Levels</div>
+      <div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Edit or delete levels (delete removes sublevels/subjects/topics downstream).</div>
       ${res.data.map(l => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:13px">
         <span style="flex:1;font-weight:500">${l.name}</span>
         <code style="background:var(--gray-100);padding:2px 8px;border-radius:4px;font-size:11px">${l.tag}</code>
+        <span class="badge badge-blue">${l.curriculum_system || '—'}</span>
         <span class="text-muted">${l.sublevels?.length||0} sub-levels</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="editLevel(${l.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteLevel(${l.id},'${l.name.replace(/'/g, "\\'")}')">Delete</button>
+        </div>
       </div>`).join('')}
     </div>`;
   }
 
   if (tab === 'subjects') {
     const [levelsRes, subjRes] = await Promise.all([API.get('/api/v1/levels'), API.get('/api/v1/subjects')]);
+    const levels = levelsRes.data || [];
     c.innerHTML = `<div class="card">
       <div class="card-title">Add Subject</div>
       <div class="form-grid">
         <div class="form-group"><label class="form-label">Subject Name</label><input class="form-input" id="new-subj-name" placeholder="e.g. Agriculture"></div>
         <div class="form-group"><label class="form-label">Tag</label><input class="form-input" id="new-subj-tag" placeholder="e.g. agriculture_senior"></div>
+
+        <div class="form-group"><label class="form-label">Curriculum System</label>
+          <select class="form-input form-select" id="new-subj-system" onchange="loadLevelsForSubjectSystem()">
+            <option value="844">844</option><option value="CBC">CBC</option>
+          </select></div>
+
         <div class="form-group"><label class="form-label">Level</label>
           <select class="form-input form-select" id="new-subj-level" onchange="loadSublevelsForSubject()">
-            ${levelsRes.data.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}
+            ${levels.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}
           </select></div>
 
         <div class="form-group"><label class="form-label">Sub-Level</label>
           <select class="form-input form-select" id="new-subj-sublevel">
             <option value="">Select sub-level</option>
-          </select></div>
-
-        <div class="form-group"><label class="form-label">System</label>
-          <select class="form-input form-select" id="new-subj-system">
-            <option value="844">844</option><option value="CBC">CBC</option>
           </select></div>
       </div>
       <button class="btn btn-primary" onclick="addSubject()">Add Subject</button>
@@ -486,22 +501,35 @@ async function switchContentTab(tab, el) {
         </div>`).join('')}
       </div>
     </div>`;
+
+    // Apply initial system filtering for levels
+    setTimeout(() => loadLevelsForSubjectSystem(), 0);
   }
 
   if (tab === 'topics') {
-    const [levelsRes, subjRes] = await Promise.all([API.get('/api/v1/levels'), API.get('/api/v1/subjects')]);
+    const [levelsRes] = await Promise.all([API.get('/api/v1/levels')]);
     const levels = levelsRes.data || [];
     c.innerHTML = `<div class="card">
       <div class="card-title">Add Topic / Strand</div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Education Level</label>
-          <select class="form-input form-select" id="new-topic-level" onchange="loadSubjectsForAdminTopics(this.value)">
+        <div class="form-group"><label class="form-label">Curriculum System</label>
+          <select class="form-input form-select" id="new-topic-system" onchange="loadLevelsForTopics(this.value)">
+            <option value="844">844</option><option value="CBC">CBC</option>
+          </select></div>
+
+        <div class="form-group"><label class="form-label">Level</label>
+          <select class="form-input form-select" id="new-topic-level" onchange="loadSublevelsForTopics(this.value)">
             ${levels.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}
+          </select></div>
+
+        <div class="form-group"><label class="form-label">Sub-Level</label>
+          <select class="form-input form-select" id="new-topic-sublevel" onchange="loadSubjectsForAdminTopics()">
+            <option value="">All sub-levels</option>
           </select></div>
 
         <div class="form-group"><label class="form-label">Subject</label>
           <select class="form-input form-select" id="new-topic-subj" onchange="loadTopicsForAdmin(this.value)">
-            ${subjRes.data.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
+            <option value="">Select system/level/sub-level first</option>
           </select></div>
 
         <div class="form-group"><label class="form-label">Topic / Strand Name</label>
@@ -510,32 +538,43 @@ async function switchContentTab(tab, el) {
         <button class="btn btn-primary" onclick="addTopic()">Add Topic</button>
       </div>
       <div style="margin-top:8px;font-size:12px;color:var(--gray-500)">
-        Level controls the education system + grade band/form family via the selected Subject.
+        Curriculum System → Level → Sub-Level → Subject.
       </div>
       <hr>
       <div id="existing-topics"><p class="text-muted text-sm">Select a subject to view topics.</p></div>
     </div>`;
 
-    // Auto-load topics for first subject.
-    if (subjRes.data.length) {
-      loadTopicsForAdmin(subjRes.data[0].id);
-    }
+    // initialize first load
+    setTimeout(() => {
+      loadLevelsForTopics(document.getElementById('new-topic-system')?.value);
+    }, 0);
   }
 
+
   if (tab === 'subtopics') {
-    const [levelsRes, subjRes] = await Promise.all([API.get('/api/v1/levels'), API.get('/api/v1/subjects')]);
+    const [levelsRes] = await Promise.all([API.get('/api/v1/levels')]);
     const levels = levelsRes.data || [];
     c.innerHTML = `<div class="card">
       <div class="card-title">Add Sub-Topic / Content</div>
       <div class="form-grid">
-        <div class="form-group"><label class="form-label">Education Level</label>
-          <select class="form-input form-select" id="st-level" onchange="loadSubjectsForST(this.value)">
+        <div class="form-group"><label class="form-label">Curriculum System</label>
+          <select class="form-input form-select" id="st-system" onchange="loadLevelsForST(this.value)">
+            <option value="844">844</option><option value="CBC">CBC</option>
+          </select></div>
+
+        <div class="form-group"><label class="form-label">Level</label>
+          <select class="form-input form-select" id="st-level" onchange="loadSublevelsForST(this.value)">
             ${levels.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}
+          </select></div>
+
+        <div class="form-group"><label class="form-label">Sub-Level</label>
+          <select class="form-input form-select" id="st-sublevel" onchange="loadSubjectsForST()">
+            <option value="">All sub-levels</option>
           </select></div>
 
         <div class="form-group"><label class="form-label">Subject</label>
           <select class="form-input form-select" id="st-subj" onchange="loadTopicsForST(this.value)">
-            ${subjRes.data.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
+            <option value="">Select subject</option>
           </select></div>
 
         <div class="form-group"><label class="form-label">Topic</label>
@@ -558,7 +597,7 @@ async function switchContentTab(tab, el) {
       <div id="st-feedback" class="alert alert-success" style="display:none;margin-top:8px"></div>
     </div>`;
 
-    if (subjRes.data.length) loadTopicsForST(subjRes.data[0].id);
+    setTimeout(() => loadLevelsForST(document.getElementById('st-system')?.value), 0);
   }
 }
 
@@ -584,19 +623,65 @@ async function loadSublevelsForTopicsTab(levelId) {
   }
 }
 
-async function loadSubjectsForAdminTopics(levelId, sublevelId = '') {
+async function loadLevelsForTopics(system) {
+  const levelSel = document.getElementById('new-topic-level');
+  const sublevelSel = document.getElementById('new-topic-sublevel');
+  if (!levelSel || !sublevelSel) return;
+
+  const res = await API.get('/api/v1/levels');
+  const levels = res.data || [];
+  const filtered = levels.filter(l => String(l.curriculum_system) === String(system));
+
+  levelSel.innerHTML = filtered.map(l => `<option value="${l.id}">${l.name}</option>`).join('') || '<option value="">No levels</option>';
+
+  // Reset sublevel
+  sublevelSel.innerHTML = '<option value="">All sub-levels</option>';
+
+  const firstLevel = filtered[0];
+  if (firstLevel) {
+    await loadSublevelsForTopics(firstLevel.id);
+  }
+}
+
+async function loadSublevelsForTopics(levelId) {
+  const sublevelSel = document.getElementById('new-topic-sublevel');
+  if (!sublevelSel) return;
+
+  sublevelSel.innerHTML = '<option value="">All sub-levels</option>';
+
+  const res = await API.get('/api/v1/levels');
+  const level = (res.data || []).find(l => String(l.id) === String(levelId));
+  const subs = level?.sublevels || [];
+
+  sublevelSel.innerHTML = [
+    '<option value="">All sub-levels</option>',
+    ...subs.map(s => `<option value="${s.id}">${s.name}</option>`),
+  ].join('');
+
+  await loadSubjectsForAdminTopics();
+}
+
+async function loadSubjectsForAdminTopics() {
+  const system = document.getElementById('new-topic-system')?.value;
+  const levelId = parseInt(document.getElementById('new-topic-level')?.value);
+  const sublevelIdRaw = document.getElementById('new-topic-sublevel')?.value || '';
+  const sublevelId = sublevelIdRaw ? parseInt(sublevelIdRaw) : '';
+
   const sel = document.getElementById('new-topic-subj');
   if (!sel) return;
+  if (!levelId) {
+    sel.innerHTML = '<option value="">Select level</option>';
+    return;
+  }
 
-  let url = `/api/v1/subjects?level_id=${levelId}`;
+  let url = `/api/v1/subjects?level_id=${levelId}&curriculum_system=${encodeURIComponent(system)}`;
   if (sublevelId) url += `&sublevel_id=${sublevelId}`;
 
   const subjRes = await API.get(url);
-
   const subjects = subjRes.data || [];
+
   sel.innerHTML = subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('') || '<option value="">No subjects</option>';
 
-  // Reload topics for selected subject.
   const first = subjects[0];
   if (first) {
     loadTopicsForAdmin(first.id);
@@ -607,13 +692,66 @@ async function loadSubjectsForAdminTopics(levelId, sublevelId = '') {
 }
 
 
-async function loadSubjectsForST(levelId) {
-  const subjRes = await API.get(`/api/v1/subjects?level_id=${levelId}`);
+
+async function loadLevelsForST(system) {
+  const levelSel = document.getElementById('st-level');
+  const sublevelSel = document.getElementById('st-sublevel');
+  if (!levelSel || !sublevelSel) return;
+
+  const res = await API.get('/api/v1/levels');
+  const levels = res.data || [];
+  const filtered = levels.filter(l => String(l.curriculum_system) === String(system));
+
+  levelSel.innerHTML = filtered.map(l => `<option value="${l.id}">${l.name}</option>`).join('') || '<option value="">No levels</option>';
+  sublevelSel.innerHTML = '<option value="">All sub-levels</option>';
+
+  const firstLevel = filtered[0];
+  if (firstLevel) {
+    await loadSublevelsForST(firstLevel.id);
+  }
+}
+
+async function loadSublevelsForST(levelId) {
+  const sublevelSel = document.getElementById('st-sublevel');
+  if (!sublevelSel) return;
+
+  sublevelSel.innerHTML = '<option value="">All sub-levels</option>';
+
+  const res = await API.get('/api/v1/levels');
+  const level = (res.data || []).find(l => String(l.id) === String(levelId));
+  const subs = level?.sublevels || [];
+
+  sublevelSel.innerHTML = [
+    '<option value="">All sub-levels</option>',
+    ...subs.map(s => `<option value="${s.id}">${s.name}</option>`),
+  ].join('');
+
+  await loadSubjectsForST();
+}
+
+async function loadSubjectsForST() {
+  const system = document.getElementById('st-system')?.value;
+  const levelId = parseInt(document.getElementById('st-level')?.value);
+  const sublevelIdRaw = document.getElementById('st-sublevel')?.value || '';
+  const sublevelId = sublevelIdRaw ? parseInt(sublevelIdRaw) : '';
+
   const sel = document.getElementById('st-subj');
   if (!sel) return;
-  sel.innerHTML = (subjRes.data || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('') || '<option value="">No subjects</option>';
 
-  const first = (subjRes.data || [])[0];
+  if (!levelId) {
+    sel.innerHTML = '<option value="">Select level</option>';
+    return;
+  }
+
+  let url = `/api/v1/subjects?level_id=${levelId}&curriculum_system=${encodeURIComponent(system)}`;
+  if (sublevelId) url += `&sublevel_id=${sublevelId}`;
+
+  const subjRes = await API.get(url);
+  const subjects = subjRes.data || [];
+
+  sel.innerHTML = subjects.map(s => `<option value="${s.id}">${s.name}</option>`).join('') || '<option value="">No subjects</option>';
+
+  const first = subjects[0];
   const topicSel = document.getElementById('st-topic');
   if (first) {
     loadTopicsForST(first.id);
@@ -621,6 +759,7 @@ async function loadSubjectsForST(levelId) {
     topicSel.innerHTML = '<option>No topics</option>';
   }
 }
+
 
 
 async function loadTopicsForAdmin(subjId) {
@@ -646,9 +785,92 @@ async function loadTopicsForST(subjId) {
 async function addLevel() {
   const name = document.getElementById('new-level-name').value.trim();
   const tag = document.getElementById('new-level-tag').value.trim();
+  const curriculum_system = document.getElementById('new-level-system')?.value || '844';
   if (!name || !tag) return showNotification('Name and tag are required.', 'error');
-  await API.post('/api/v1/levels', { name, tag });
+  await API.post('/api/v1/levels', { name, tag, curriculum_system });
   switchContentTab('levels', document.querySelector('.tab-btn'));
+}
+
+async function editLevel(levelId) {
+  const levels = await API.get('/api/v1/levels');
+  const lvl = (levels.data || []).find(l => String(l.id) === String(levelId));
+  if (!lvl) return showNotification('Level not found.', 'error');
+
+  openModal(`Edit Level — ${lvl.name}`, `
+    <div class="card" style="box-shadow:none;border:1px solid var(--gray-200)">
+      <div class="card-title">Level Details</div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="edit-level-name" value="${lvl.name.replace(/"/g,'"')}"></div>
+        <div class="form-group"><label class="form-label">Tag</label><input class="form-input" id="edit-level-tag" value="${lvl.tag}"></div>
+        <div class="form-group"><label class="form-label">System</label>
+          <select class="form-input form-select" id="edit-level-system">
+            <option value="844" ${lvl.curriculum_system==='844'?'selected':''}>844</option>
+            <option value="CBC" ${lvl.curriculum_system==='CBC'?'selected':''}>CBC</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+        <button class="btn btn-primary" onclick="saveEditLevel(${lvl.id})">Save</button>
+        <div id="edit-level-error" class="alert alert-error" style="display:none;margin:0;padding:0.75rem 1rem;font-size:13px"></div>
+      </div>
+    </div>
+  `);
+}
+
+async function saveEditLevel(levelId) {
+  const errEl = document.getElementById('edit-level-error');
+  if (errEl) { errEl.style.display = 'none'; }
+  const name = document.getElementById('edit-level-name')?.value?.trim();
+  const tag = document.getElementById('edit-level-tag')?.value?.trim();
+  const curriculum_system = document.getElementById('edit-level-system')?.value || '844';
+  try {
+    await API.put(`/api/v1/levels/${levelId}`, { name, tag, curriculum_system });
+    closeModal();
+    switchContentTab('levels', document.querySelector('.tab-btn'));
+    showNotification('Level updated!', 'success');
+  } catch (e) {
+    if (errEl) { errEl.textContent = e.message || 'Unable to update level.'; errEl.style.display = 'block'; }
+  }
+}
+
+async function deleteLevel(levelId, levelName) {
+  if (!confirm(`Delete level "${levelName}"? This cannot be undone.`)) return;
+  await API.delete(`/api/v1/levels/${levelId}`);
+  switchContentTab('levels', document.querySelector('.tab-btn'));
+  showNotification('Level deleted!', 'success');
+}
+
+
+function loadLevelsForSubjectSystem() {
+  const system = document.getElementById('new-subj-system')?.value;
+  const levelSel = document.getElementById('new-subj-level');
+  const levelSubsSel = document.getElementById('new-subj-sublevel');
+  if (!levelSel || !levelSubsSel) return;
+
+  const levels = Array.from(levelSel.options)
+    .map(o => ({ id: parseInt(o.value), name: o.textContent }));
+
+  // We need the full levels list (with curriculum_system) from API to filter.
+  // This function relies on the latest API call in `loadSublevelsForSubject()`
+  // for correctness.
+  return API.get('/api/v1/levels').then(levelsRes => {
+    const allLevels = levelsRes.data || [];
+    const filtered = allLevels.filter(l => String(l.curriculum_system) === String(system));
+
+    const prev = parseInt(levelSel.value);
+    levelSel.innerHTML = filtered.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+
+    // Preserve selection if still valid
+    if (filtered.some(l => l.id === prev)) {
+      levelSel.value = String(prev);
+    }
+
+    // Reset sublevel
+    levelSubsSel.innerHTML = '<option value="">Select sub-level</option>';
+    loadSublevelsForSubject();
+  }).catch(() => {
+    // no-op
+  });
 }
 
 async function loadSublevelsForSubject() {
@@ -660,7 +882,7 @@ async function loadSublevelsForSubject() {
   try {
     // levels endpoint already returns sublevels inside each level.to_dict()
     const levelsRes = await API.get('/api/v1/levels');
-    const level = (levelsRes.data || []).find(l => l.id === levelId);
+    const level = (levelsRes.data || []).find(l => String(l.id) === String(levelId));
     const subs = level?.sublevels || [];
 
     subSel.innerHTML = (subs.map(s => `
@@ -670,6 +892,7 @@ async function loadSublevelsForSubject() {
     subSel.innerHTML = '<option value="">Unable to load</option>';
   }
 }
+
 
 async function addSubject() {
   const sublevelRaw = document.getElementById('new-subj-sublevel')?.value || '';
@@ -693,6 +916,7 @@ async function addTopic() {
   loadTopicsForAdmin(subject_id);
   document.getElementById('new-topic-name').value = '';
 }
+
 
 async function deleteTopic(id) {
   if (!confirm('Delete this topic and all its subtopics?')) return;

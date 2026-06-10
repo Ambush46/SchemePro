@@ -6,7 +6,7 @@ All endpoints under /api/v1/
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 from app import db
-from app.models.level import Level, SubLevel
+from app.models.level import Level, SubLevel, CurriculumSystem 
 from app.models.subject import Subject
 from app.models.curriculum import Topic, SubTopic, Content
 from app.models.pricing import DocumentPricing, GeneratedDocument
@@ -29,21 +29,6 @@ def get_levels():
     return jsonify({'success': True, 'data': [l.to_dict() for l in levels]})
 
 
-@api_bp.route('/levels', methods=['POST'])
-@login_required
-def create_level():
-    err = _require_admin()
-    if err: return err
-    data = request.get_json()
-    if not data.get('name') or not data.get('tag'):
-        return jsonify({'success': False, 'error': 'name and tag are required.'}), 400
-    if Level.query.filter_by(tag=data['tag']).first():
-        return jsonify({'success': False, 'error': 'Tag already exists.'}), 409
-    lvl = Level(name=data['name'], tag=data['tag'], curriculum_system=data.get('curriculum_system', '844'))
-    db.session.add(lvl)
-    db.session.commit()
-    return jsonify({'success': True, 'data': lvl.to_dict()}), 201
-
 
 @api_bp.route('/levels/<int:level_id>', methods=['PUT'])
 @login_required
@@ -60,8 +45,15 @@ def update_level(level_id):
         if Level.query.filter(Level.tag == data['tag'], Level.id != level_id).first():
             return jsonify({'success': False, 'error': 'Tag already exists.'}), 409
         lvl.tag = data['tag']
+        
+    # FIX: Resolve the curriculum system tag to a model instance during update
     if data.get('curriculum_system'):
-        lvl.curriculum_system = data['curriculum_system']
+        system_tag = data['curriculum_system']
+        system_obj = CurriculumSystem.query.filter_by(tag=system_tag).first()
+        if not system_obj:
+            return jsonify({'success': False, 'error': f'Curriculum system "{system_tag}" not found.'}), 400
+        lvl.curriculum_system = system_obj
+
     db.session.commit()
     return jsonify({'success': True, 'data': lvl.to_dict()}), 200
 
@@ -137,7 +129,79 @@ def create_subject():
     return jsonify({'success': True, 'data': subj.to_dict()}), 201
 
 
-# ── TOPICS ────────────────────────────────────────────────────────
+
+@api_bp.route('/subjects/<int:subject_id>', methods=['PUT'])
+@login_required
+def update_subject(subject_id):
+
+
+    err = _require_admin()
+    if err: return err
+    data = request.get_json() or {}
+
+    subj = db.session.get(Subject, subject_id)
+    if not subj:
+        return jsonify({'success': False, 'error': 'Subject not found.'}), 404
+
+    # Validate level/sublevel relationships if provided
+    if data.get('level_id') is not None:
+        new_level = db.session.get(Level, data.get('level_id'))
+        if not new_level:
+            return jsonify({'success': False, 'error': 'Level not found.'}), 404
+        subj.level_id = new_level.id
+
+        # sublevel check
+        if data.get('sublevel_id') is not None:
+            new_sublevel_id = data.get('sublevel_id')
+            if new_sublevel_id:
+                sublevel = db.session.get(SubLevel, new_sublevel_id)
+                if not sublevel or sublevel.level_id != new_level.id:
+                    return jsonify({'success': False, 'error': 'Sublevel must belong to the selected level.'}), 400
+            subj.sublevel_id = new_sublevel_id
+
+    if data.get('name'):
+        subj.name = data['name']
+
+    if data.get('tag'):
+        if Subject.query.filter(Subject.tag == data['tag'], Subject.id != subject_id).first():
+            return jsonify({'success': False, 'error': 'Subject tag already exists.'}), 409
+        subj.tag = data['tag']
+
+    if data.get('curriculum_system'):
+        subj.curriculum_system = data['curriculum_system']
+
+    # Allow updating sublevel without changing level if client sends it
+    if data.get('sublevel_id') is not None and data.get('level_id') is None:
+        sublevel_id = data.get('sublevel_id')
+        if sublevel_id:
+            sublevel = db.session.get(SubLevel, sublevel_id)
+            if not sublevel or sublevel.level_id != subj.level_id:
+                return jsonify({'success': False, 'error': 'Sublevel must belong to the selected level.'}), 400
+        subj.sublevel_id = sublevel_id
+
+    if data.get('is_active') is not None:
+        subj.is_active = bool(data.get('is_active'))
+
+    db.session.commit()
+    return jsonify({'success': True, 'data': subj.to_dict()}), 200
+
+
+@api_bp.route('/subjects/<int:subject_id>', methods=['DELETE'])
+@login_required
+def delete_subject(subject_id):
+
+    err = _require_admin()
+    if err: return err
+    subj = db.session.get(Subject, subject_id)
+    if not subj:
+        return jsonify({'success': False, 'error': 'Subject not found.'}), 404
+    db.session.delete(subj)
+    db.session.commit()
+
+    return jsonify({'success': True}), 200
+
+
+# ── TOPICS
 @api_bp.route('/topics', methods=['GET'])
 def get_topics():
     """GET /api/v1/topics?subject_id=X — Topics/Strands for a subject."""
@@ -160,9 +224,37 @@ def create_topic():
     return jsonify({'success': True, 'data': t.to_dict()}), 201
 
 
+@api_bp.route('/topics/<int:topic_id>', methods=['PUT'])
+@login_required
+def update_topic(topic_id):
+    err = _require_admin()
+    if err: return err
+    data = request.get_json() or {}
+
+    t = db.session.get(Topic, topic_id)
+    if not t:
+        return jsonify({'success': False, 'error': 'Topic not found.'}), 404
+
+    if data.get('name'):
+        t.name = data['name']
+
+    if data.get('subject_id') is not None:
+        subj = db.session.get(Subject, data.get('subject_id'))
+        if not subj:
+            return jsonify({'success': False, 'error': 'Subject not found.'}), 404
+        t.subject_id = subj.id
+
+    if data.get('order') is not None:
+        t.order = int(data.get('order'))
+
+    db.session.commit()
+    return jsonify({'success': True, 'data': t.to_dict()}), 200
+
+
 @api_bp.route('/topics/<int:topic_id>', methods=['DELETE'])
 @login_required
 def delete_topic(topic_id):
+
     err = _require_admin()
     if err: return err
     t = db.session.get(Topic, topic_id)
@@ -208,9 +300,69 @@ def create_subtopic():
     return jsonify({'success': True, 'data': st.to_dict()}), 201
 
 
+@api_bp.route('/subtopics/<int:subtopic_id>', methods=['PUT'])
+@login_required
+def update_subtopic(subtopic_id):
+    err = _require_admin()
+    if err: return err
+    data = request.get_json() or {}
+
+    st = db.session.get(SubTopic, subtopic_id)
+    if not st:
+        return jsonify({'success': False, 'error': 'Subtopic not found.'}), 404
+
+    if data.get('name'):
+        st.name = data['name']
+
+    if data.get('topic_id') is not None:
+        t = db.session.get(Topic, data.get('topic_id'))
+        if not t:
+            return jsonify({'success': False, 'error': 'Topic not found.'}), 404
+        st.topic_id = t.id
+
+    if data.get('order') is not None:
+        st.order = int(data.get('order'))
+
+    # Content update/create
+    if data.get('content') is not None:
+        payload = data.get('content') or {}
+        if st.content:
+            c = st.content
+        else:
+            c = Content(subtopic_id=st.id)
+            db.session.add(c)
+
+        c.content = payload.get('content')
+        if payload.get('num_lessons') is not None:
+            c.num_lessons = int(payload.get('num_lessons'))
+        c.key_inquiry_question = payload.get('key_inquiry_question')
+        c.learning_outcomes = payload.get('learning_outcomes')
+        c.activities = payload.get('activities')
+        c.references = payload.get('references')
+
+    db.session.commit()
+    return jsonify({'success': True, 'data': st.to_dict()}), 200
+
+
+@api_bp.route('/subtopics/<int:subtopic_id>', methods=['DELETE'])
+@login_required
+def delete_subtopic(subtopic_id):
+    err = _require_admin()
+    if err: return err
+
+    st = db.session.get(SubTopic, subtopic_id)
+    if not st:
+        return jsonify({'success': False, 'error': 'Subtopic not found.'}), 404
+
+    db.session.delete(st)
+    db.session.commit()
+    return jsonify({'success': True}), 200
+
+
 # ── PRICING ───────────────────────────────────────────────────────
 @api_bp.route('/pricing', methods=['GET'])
 def get_pricing():
+
     """GET /api/v1/pricing — Document download prices."""
     prices = DocumentPricing.query.all()
     return jsonify({'success': True, 'data': {p.doc_type: p.to_dict() for p in prices}})

@@ -78,7 +78,8 @@ def create_app(config=None):
 # ─────────────────────────────────────────────────────────────────
 def _seed_initial_data():
     from app.models.role import Role
-    from app.models.level import Level, SubLevel
+    # FIX: Imported the CurriculumSystem model
+    from app.models.level import Level, SubLevel, CurriculumSystem
     from app.models.subject import Subject
     from app.models.curriculum import Topic, SubTopic, Content
     from app.models.user import User
@@ -94,6 +95,14 @@ def _seed_initial_data():
         ])
         db.session.commit()
 
+    # ── FIX: Seed Curriculum Systems First ──────────────────────────
+    if not CurriculumSystem.query.first():
+        db.session.add_all([
+            CurriculumSystem(name="8-4-4 System", tag="844"),
+            CurriculumSystem(name="Competency Based Curriculum", tag="CBC")
+        ])
+        db.session.commit()
+
     # ── Levels & SubLevels ─────────────────────────────────────────
     if not Level.query.first():
         levels_data = [
@@ -106,8 +115,11 @@ def _seed_initial_data():
              [('form1','Form 1'),('form2','Form 2'),
               ('form3','Form 3'),('form4','Form 4')]),
         ]
-        for name, tag, system, sls in levels_data:
-            lvl = Level(name=name, tag=tag, curriculum_system=system)
+        for name, tag, system_tag, sls in levels_data:
+            # FIX: Look up the real database object instance using the tag
+            system_obj = CurriculumSystem.query.filter_by(tag=system_tag).first()
+            
+            lvl = Level(name=name, tag=tag, curriculum_system=system_obj)
             db.session.add(lvl)
             db.session.flush()
             for sl_tag, sl_name in sls:
