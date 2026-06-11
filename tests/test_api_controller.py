@@ -4,6 +4,15 @@ from app.models.curriculum import Topic
 
 
 class TestAPIController:
+    def test_get_curriculum_systems(self, client):
+        res = client.get('/api/v1/curriculum-systems')
+        assert res.status_code == 200
+        data = res.get_json()['data']
+        assert len(data) >= 2
+        system_tags = [s['tag'] for s in data]
+        assert '844' in system_tags
+        assert 'CBC' in system_tags
+
     def test_get_levels(self, client):
         res = client.get('/api/v1/levels')
         assert res.status_code == 200
@@ -90,3 +99,10 @@ class TestAPIController:
     def test_create_level_duplicate_tag(self, admin_client):
         res = admin_client.post('/api/v1/levels', json={'name': 'Dup', 'tag': 'senior'})
         assert res.status_code == 409
+
+    def test_create_sublevel_as_admin(self, admin_client, app):
+        with app.app_context():
+            senior = Level.query.filter_by(tag='senior').first()
+        res = admin_client.post('/api/v1/sublevels', json={'name': 'Form 3', 'tag': 'form_3', 'level_id': senior.id})
+        assert res.status_code == 201
+        assert res.get_json()['data']['name'] == 'Form 3'

@@ -21,6 +21,32 @@ def _require_admin():
     return None
 
 
+# ── CURRICULUM SYSTEMS ────────────────────────────────────────────
+@api_bp.route('/curriculum-systems', methods=['GET'])
+def get_curriculum_systems():
+    """GET /api/v1/curriculum-systems — All available curriculum systems."""
+    systems = CurriculumSystem.query.order_by(CurriculumSystem.id).all()
+    return jsonify({'success': True, 'data': [s.to_dict() for s in systems]})
+
+@api_bp.route('/curriculum-systems', methods=['POST'])
+def create_curriculum_systems():
+    """POST /api/v1/curriculum-systems — Add curriculum systems."""
+    err = _require_admin()
+    if err:
+        return err
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    tag = (data.get('tag') or '').strip()
+    if not name or not tag:
+        return jsonify({'success': False, 'error': 'Name and tag are required.'}), 400
+    systems = CurriculumSystem(name=name, tag=tag)
+    if CurriculumSystem.query.filter_by(tag=tag).first():
+        return jsonify({'success': False, 'error': 'Tag already exists.'}), 409
+
+    db.session.add(systems)
+    db.session.commit()
+    return jsonify({'success': True, 'data':systems.to_dict()})
+
 # ── LEVELS ────────────────────────────────────────────────────────
 @api_bp.route('/levels', methods=['GET'])
 def get_levels():
@@ -28,6 +54,30 @@ def get_levels():
     levels = Level.query.order_by(Level.id).all()
     return jsonify({'success': True, 'data': [l.to_dict() for l in levels]})
 
+
+@api_bp.route('/levels', methods=['POST'])
+@login_required
+def create_level():
+    err = _require_admin()
+    if err:
+        return err
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    tag = (data.get('tag') or '').strip()
+    if not name or not tag:
+        return jsonify({'success': False, 'error': 'Name and tag are required.'}), 400
+    if Level.query.filter_by(tag=tag).first():
+        return jsonify({'success': False, 'error': 'Tag already exists.'}), 409
+
+    system_tag = (data.get('curriculum_system') or '')
+    system_obj = CurriculumSystem.query.filter_by(id=system_tag).first()
+    if not system_obj:
+        return jsonify({'success': False, 'error': f'Curriculum system "{system_tag}" not found.'}), 400
+
+    lvl = Level(name=name, tag=tag, curriculum_system=system_obj)
+    db.session.add(lvl)
+    db.session.commit()
+    return jsonify({'success': True, 'data': lvl.to_dict()}), 201
 
 
 @api_bp.route('/levels/<int:level_id>', methods=['PUT'])

@@ -438,20 +438,41 @@ async function switchContentTab(tab, el) {
 
   if (tab === 'levels') {
     const res = await API.get('/api/v1/levels');
+    const curriculum = await API.get('/api/v1/curriculum-systems');
     c.innerHTML = `<div class="card">
+      <div class="card-title">Add Curriculem System</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Curriculum Name</label><input class="form-input" id="new-curriculum-name" placeholder="e.g. Competency Based Education"></div>
+        <div class="form-group"><label class="form-label">Tag</label><input class="form-input" id="new-curriculum-tag" placeholder="e.g. cbc"></div>
+        <button class="btn btn-primary" onclick="addCurriculum()">Add Curriculum</button>
+      </div>
+    </div>
+    <div class="card">
       <div class="card-title">Add Level</div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Level Name</label><input class="form-input" id="new-level-name" placeholder="e.g. Junior School (CBC)"></div>
         <div class="form-group"><label class="form-label">Tag</label><input class="form-input" id="new-level-tag" placeholder="e.g. junior_cbc"></div>
         <div class="form-group"><label class="form-label">Curriculum System</label>
           <select class="form-input form-select" id="new-level-system">
-            <option value="844">844</option>
-            <option value="CBC">CBC</option>
+            ${curriculum.data.map(l=>`<option value="${l.id}">${l.name} — ${l.tag}</option>`).join('')}
           </select>
         </div>
         <button class="btn btn-primary" onclick="addLevel()">Add Level</button>
       </div>
-      <hr>
+    </div>
+    <div class="card" style="margin-top:1rem">
+      <div class="card-title">Add Sub-Level</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Level</label>
+          <select class="form-input form-select" id="new-sublevel-level">
+            ${res.data.map(l=>`<option value="${l.id}">${l.curriculum_system} — ${l.name}</option>`).join('')}
+          </select></div>
+        <div class="form-group"><label class="form-label">Sub-Level Name</label><input class="form-input" id="new-sublevel-name" placeholder="e.g. Form 3"></div>
+        <div class="form-group"><label class="form-label">Tag</label><input class="form-input" id="new-sublevel-tag" placeholder="e.g. form_3"></div>
+        <button class="btn btn-primary" onclick="addSublevel()">Add Sub-Level</button>
+      </div>
+    </div>
+    <hr>
       <div class="card-title" style="margin-top:1rem">Existing Levels</div>
       <div style="font-size:12px;color:var(--gray-500);margin-bottom:10px">Edit or delete levels (delete removes sublevels/subjects/topics downstream).</div>
       ${res.data.map(l => `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:13px">
@@ -468,8 +489,14 @@ async function switchContentTab(tab, el) {
   }
 
   if (tab === 'subjects') {
-    const [levelsRes, subjRes] = await Promise.all([API.get('/api/v1/levels'), API.get('/api/v1/subjects')]);
+    const [systemsRes, levelsRes, subjRes] = await Promise.all([
+      API.get('/api/v1/curriculum-systems'),
+      API.get('/api/v1/levels'),
+      API.get('/api/v1/subjects')
+    ]);
+    const systems = systemsRes.data || [];
     const levels = levelsRes.data || [];
+    
     c.innerHTML = `<div class="card">
       <div class="card-title">Add Subject</div>
       <div class="form-grid">
@@ -478,17 +505,18 @@ async function switchContentTab(tab, el) {
 
         <div class="form-group"><label class="form-label">Curriculum System</label>
           <select class="form-input form-select" id="new-subj-system" onchange="loadLevelsForSubjectSystem()">
-            <option value="844">844</option><option value="CBC">CBC</option>
+            ${systems.map(s=>`<option value="${s.name}">${s.name}</option>`).join('')}
           </select></div>
 
         <div class="form-group"><label class="form-label">Level</label>
           <select class="form-input form-select" id="new-subj-level" onchange="loadSublevelsForSubject()">
-            ${levels.map(l=>`<option value="${l.id}">${l.name}</option>`).join('')}
+            <option value="">Select curriculum system first</option>
+            
           </select></div>
 
         <div class="form-group"><label class="form-label">Sub-Level</label>
           <select class="form-input form-select" id="new-subj-sublevel">
-            <option value="">Select sub-level</option>
+            <option> Grade or Classes (select Level first) </option>
           </select></div>
       </div>
       <button class="btn btn-primary" onclick="addSubject()">Add Subject</button>
@@ -508,13 +536,16 @@ async function switchContentTab(tab, el) {
 
   if (tab === 'topics') {
     const [levelsRes] = await Promise.all([API.get('/api/v1/levels')]);
+    const systemRes = await API.get('/api/v1/curriculum-systems');
+    const systems = systemRes.data || [];
     const levels = levelsRes.data || [];
+    
     c.innerHTML = `<div class="card">
       <div class="card-title">Add Topic / Strand</div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Curriculum System</label>
           <select class="form-input form-select" id="new-topic-system" onchange="loadLevelsForTopics(this.value)">
-            <option value="844">844</option><option value="CBC">CBC</option>
+            ${systems.map(s=>`<option value="${s.name}">${s.name}</option>`).join('')}
           </select></div>
 
         <div class="form-group"><label class="form-label">Level</label>
@@ -553,13 +584,15 @@ async function switchContentTab(tab, el) {
 
   if (tab === 'subtopics') {
     const [levelsRes] = await Promise.all([API.get('/api/v1/levels')]);
+    const systemRes = await API.get('/api/v1/curriculum-systems');
+    const systems = systemRes.data || [];
     const levels = levelsRes.data || [];
     c.innerHTML = `<div class="card">
       <div class="card-title">Add Sub-Topic / Content</div>
       <div class="form-grid">
         <div class="form-group"><label class="form-label">Curriculum System</label>
           <select class="form-input form-select" id="st-system" onchange="loadLevelsForST(this.value)">
-            <option value="844">844</option><option value="CBC">CBC</option>
+            ${systems.map(s=>`<option value="${s.name}">${s.name}</option>`).join('')}
           </select></div>
 
         <div class="form-group"><label class="form-label">Level</label>
@@ -586,8 +619,18 @@ async function switchContentTab(tab, el) {
         <div class="form-group"><label class="form-label">Teaching Content / Aids</label>
           <input class="form-input" id="new-st-content" placeholder="e.g. Spring balance, weights"></div>
 
+        <div class="form-group"><label class="form-label">Teaching Activities</label>
+          <input class="form-input" id="new-st-activities" placeholder="e.g. Reading and writing"></div>
+        
+        <div class="form-group"><label class="form-label">Learning Outcomes</label>
+          <input class="form-input" id="new-st-learning-outcomes" placeholder="e.g. The learner should be able to state Hooke's law"></div>
+
+        <div class="form-group"><label class="form-label"> References</label>
+          <input class="form-input" id="new-st-refernces" placeholder="e.g.Master page 2"></div>
+
         <div class="form-group"><label class="form-label">No. of Lessons</label>
           <input class="form-input" type="number" id="new-st-lessons" value="2" min="1" max="20"></div>
+
 
         <div class="form-group form-full"><label class="form-label">Key Inquiry Question (CBC)</label>
           <input class="form-input" id="new-st-kiq" placeholder="e.g. Why do objects resist changes in motion?"></div>
@@ -782,12 +825,35 @@ async function loadTopicsForST(subjId) {
   sel.innerHTML = res.data.map(t => `<option value="${t.id}">${t.name}</option>`).join('') || '<option>No topics</option>';
 }
 
+async function addCurriculum(){
+  const name = document.getElementById('new-curriculum-name').value.trim();
+  const tag = document.getElementById('new-curriculum-tag').value.trim();
+  if (!name || !tag) return showNotification('Name and tag are required.', 'error');
+  await API.post('/api/v1/curriculum-systems', { name, tag}).then((res)=>{
+    if (res.success === true){
+      showNotification(res.data.name, 'success');
+    }
+    
+  });
+  switchContentTab('levels', document.querySelector('.tab-btn'));
+}
+
 async function addLevel() {
   const name = document.getElementById('new-level-name').value.trim();
   const tag = document.getElementById('new-level-tag').value.trim();
   const curriculum_system = document.getElementById('new-level-system')?.value || '844';
   if (!name || !tag) return showNotification('Name and tag are required.', 'error');
   await API.post('/api/v1/levels', { name, tag, curriculum_system });
+  switchContentTab('levels', document.querySelector('.tab-btn'));
+}
+
+async function addSublevel() {
+  const levelId = parseInt(document.getElementById('new-sublevel-level')?.value);
+  const name = document.getElementById('new-sublevel-name')?.value.trim();
+  const tag = document.getElementById('new-sublevel-tag')?.value.trim();
+  if (!levelId || !name || !tag) return showNotification('Level, name and tag are required.', 'error');
+  await API.post('/api/v1/sublevels', { level_id: levelId, name, tag });
+  showNotification('Sub-level added!', 'success');
   switchContentTab('levels', document.querySelector('.tab-btn'));
 }
 
@@ -845,24 +911,23 @@ function loadLevelsForSubjectSystem() {
   const system = document.getElementById('new-subj-system')?.value;
   const levelSel = document.getElementById('new-subj-level');
   const levelSubsSel = document.getElementById('new-subj-sublevel');
+  
   if (!levelSel || !levelSubsSel) return;
 
-  const levels = Array.from(levelSel.options)
-    .map(o => ({ id: parseInt(o.value), name: o.textContent }));
-
-  // We need the full levels list (with curriculum_system) from API to filter.
-  // This function relies on the latest API call in `loadSublevelsForSubject()`
-  // for correctness.
   return API.get('/api/v1/levels').then(levelsRes => {
     const allLevels = levelsRes.data || [];
+    // Filter levels by the selected curriculum system (compare by name)
+    console.log(allLevels);
     const filtered = allLevels.filter(l => String(l.curriculum_system) === String(system));
-
+    //console.log(filtered);
     const prev = parseInt(levelSel.value);
-    levelSel.innerHTML = filtered.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+    levelSel.innerHTML = filtered.map(l => `<option value="${l.id}" data-system="${l.curriculum_system}">${l.name}</option>`).join('') || '<option value="">No levels available</option>';
 
     // Preserve selection if still valid
     if (filtered.some(l => l.id === prev)) {
       levelSel.value = String(prev);
+    } else if (filtered.length > 0) {
+      levelSel.value = String(filtered[0].id);
     }
 
     // Reset sublevel
@@ -933,6 +998,9 @@ async function addSubTopic() {
     name, topic_id,
     content: {
       content: document.getElementById('new-st-content').value.trim(),
+      activities: document.getElementById('new-st-activities').value.trim(),
+      learning_outcomes: document.getElementById('new-st-learning-outcomes').value.trim(),
+      references: document.getElementById('new-st-refernces').value.trim(),
       num_lessons: parseInt(document.getElementById('new-st-lessons').value) || 2,
       key_inquiry_question: document.getElementById('new-st-kiq').value.trim(),
     },
