@@ -526,6 +526,11 @@ async function switchContentTab(tab, el) {
         ${subjRes.data.map(s => `<div style="padding:8px;background:var(--gray-50);border-radius:var(--radius);font-size:13px">
           <strong>${s.name}</strong> <span class="badge badge-blue">${s.curriculum_system}</span>
           <div class="text-muted" style="font-size:11px">${s.level_name}</div>
+          <div class="text-muted" style="font-size:11px">${s.sublevel_name}</div>
+          <div style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="editSubject(${s.id})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="editSubject(${s.id},'${s.name.replace(/'/g, "\\'")}')">Delete</button>
+        </div>
         </div>`).join('')}
       </div>
     </div>`;
@@ -917,7 +922,7 @@ function loadLevelsForSubjectSystem() {
   return API.get('/api/v1/levels').then(levelsRes => {
     const allLevels = levelsRes.data || [];
     // Filter levels by the selected curriculum system (compare by name)
-    console.log(allLevels);
+    
     const filtered = allLevels.filter(l => String(l.curriculum_system) === String(system));
     //console.log(filtered);
     const prev = parseInt(levelSel.value);
@@ -969,10 +974,145 @@ async function addSubject() {
     curriculum_system: document.getElementById('new-subj-system').value,
   };
   if (!body.name || !body.tag) return showNotification('Name and tag required.', 'error');
-  await API.post('/api/v1/subjects', body);
-  showNotification('Subject added!', 'success');
+  await API.post('/api/v1/subjects', body).catch((error)=>{ 
+    
+    showNotification(error, 'error');
+  }).then((res)=>{
+      showNotification('SUbject Added', 'success');
+    });
+  
 }
 
+async function editSubject(subjectid){
+  const systemsRes = await API.get('/api/v1/curriculum-systems');
+  const subjectRes = await API.get('/api/v1/subjects');
+  const systems = systemsRes.data || [];
+  const subject = (subjectRes.data || []).find(s => String(s.id) === String(subjectid));
+  if (!subject){ return showNotification('Subject not found.', 'error');}
+  openModal(`Edit Subject — ${subject.name}`, `
+    <div class="card" style="box-shadow:none;border:1px solid var(--gray-200)">
+      <div class="card-title">Subject Details</div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="form-group"><label class="form-label">Name</label><input class="form-input" id="edit-level-name" value="${subject.name.replace(/"/g,'"')}"></div>
+        <div class="form-group"><label class="form-label">Tag</label><input class="form-input" id="edit-level-tag" value="${subject.tag}"></div>
+        <div class="form-group"><label class="form-label">System</label>
+          <select class="form-input form-select" id="edit-subject-system" onchange="loadEditLevelsForSubjectSystem()">
+           <option value="${subject.curriculum_system}" selected>${subject.curriculum_system}</option>
+            ${systems.map(s=>`<option value="${s.name}">${s.name}</option>`).join('')}
+          </select>
+          </div>
+          <div class="form-group"><label class="form-label">Level</label>
+            <select class="form-input form-select" id="edit-subject-level">
+            <option value="${subject.level_id}" selected>${subject.level_name}</option>
+            
+            </select>
+          </div>
+          <div class="form-group"><label class="form-label">Sub Level</label>
+            <select class="form-input form-select" id="edit-subject-sublevel">
+            <option value="${subject.sublevel_id}" selected>${subject.sublevel_name}</option> 
+            </select>
+          </div>
+          
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center">
+        <button class="btn btn-primary" onclick="saveEditSubject(${subject.id})">Save</button>
+        <div id="edit-level-error" class="alert alert-error" style="display:none;margin:0;padding:0.75rem 1rem;font-size:13px"></div>
+      </div>
+    </div>
+  `);
+}
+
+function loadEditLevelsForSubjectSystem() {
+  const system = document.getElementById('edit-subject-system')?.value;
+  const levelSel = document.getElementById('edit-subject-level');
+  const levelSubsSel = document.getElementById('edit-subject-sublevel');
+  
+  if (!levelSel || !levelSubsSel) return;
+
+  return API.get('/api/v1/levels').then(levelsRes => {
+    const allLevels = levelsRes.data || [];
+    // Filter levels by the selected curriculum system (compare by name)
+    
+    const filtered = allLevels.filter(l => String(l.curriculum_system) === String(system));
+    //console.log(filtered);
+    const prev = parseInt(levelSel.value);
+    levelSel.innerHTML = filtered.map(l => `<option value="${l.id}" data-system="${l.curriculum_system}">${l.name}</option>`).join('') || '<option value="">No levels available</option>';
+
+    // Preserve selection if still valid
+    if (filtered.some(l => l.id === prev)) {
+      levelSel.value = String(prev);
+    } else if (filtered.length > 0) {
+      levelSel.value = String(filtered[0].id);
+    }
+
+    // Reset sublevel
+    levelSubsSel.innerHTML = '<option value="">Select sub-level</option>';
+    loadEditSublevelsForSubject();
+  }).catch(() => {
+    // no-op
+  });
+}
+
+async function saveEditSubject(subjectId) {
+  const errEl = document.getElementById('edit-level-error');
+  if (errEl) {
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+  }
+
+  const name = document.getElementById('edit-level-name')?.value.trim();
+  const tag = document.getElementById('edit-level-tag')?.value.trim();
+  const curriculum_system = document.getElementById('edit-subject-system')?.value;
+  const level_id = parseInt(document.getElementById('edit-subject-level')?.value);
+  const sublevelRaw = document.getElementById('edit-subject-sublevel')?.value || '';
+  const sublevel_id = sublevelRaw ? parseInt(sublevelRaw) : null;
+
+  if (!name || !tag) {
+    if (errEl) {
+      errEl.textContent = 'Name and tag are required.';
+      errEl.style.display = 'block';
+    }
+    return;
+  }
+
+  try {
+    await API.put(`/api/v1/subjects/${subjectId}`, {
+      name,
+      tag,
+      curriculum_system,
+      level_id,
+      sublevel_id,
+    });
+    closeModal();
+    switchContentTab('subjects', document.querySelector('.tab-btn:nth-child(2)'));
+    showNotification('Subject updated!', 'success');
+  } catch (e) {
+    if (errEl) {
+      errEl.textContent = e.message || 'Unable to update subject.';
+      errEl.style.display = 'block';
+    }
+  }
+}
+
+async function loadEditSublevelsForSubject() {
+  const levelId = parseInt(document.getElementById('edit-subject-level').value);
+  const subSel = document.getElementById('edit-subject-sublevel');
+  if (!subSel) return;
+
+  subSel.innerHTML = '<option value="">Loading…</option>';
+  try {
+    // levels endpoint already returns sublevels inside each level.to_dict()
+    const levelsRes = await API.get('/api/v1/levels');
+    const level = (levelsRes.data || []).find(l => String(l.id) === String(levelId));
+    const subs = level?.sublevels || [];
+
+    subSel.innerHTML = (subs.map(s => `
+      <option value="${s.id}">${s.name}</option>
+    `).join('')) || '<option value="">No sub-levels</option>';
+  } catch (e) {
+    subSel.innerHTML = '<option value="">Unable to load</option>';
+  }
+}
 async function addTopic() {
   const name = document.getElementById('new-topic-name').value.trim();
   const subject_id = parseInt(document.getElementById('new-topic-subj').value);

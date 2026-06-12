@@ -145,10 +145,17 @@ def get_subjects():
         q = q.filter_by(level_id=level_id)
     if sublevel_id:
         q = q.filter_by(sublevel_id=sublevel_id)
+
+    # Resolve curriculum_system tag -> FK id
     if curriculum_system:
-        q = q.filter_by(curriculum_system=curriculum_system)
+        cs_obj = _resolve_curriculum_system(curriculum_system)
+        if not cs_obj:
+            return jsonify({'success': False, 'error': 'Invalid curriculum_system.'}), 400
+        q = q.filter_by(curriculum_system=cs_obj.id)
+
     subjects = q.order_by(Subject.name).all()
     return jsonify({'success': True, 'data': [s.to_dict() for s in subjects]})
+
 
 
 @api_bp.route('/subjects', methods=['POST'])
@@ -167,13 +174,24 @@ def create_subject():
         sublevel = db.session.get(SubLevel, sublevel_id)
         if not sublevel or sublevel.level_id != level.id:
             return jsonify({'success': False, 'error': 'Sublevel must belong to the selected level.'}), 400
+    cs_obj = None
+    if data.get('curriculum_system') is not None:
+        cs_obj = _resolve_curriculum_system(data.get('curriculum_system'))
+        if not cs_obj:
+            return jsonify({'success': False, 'error': 'Invalid curriculum_system.'}), 400
+    else:
+        cs_obj = getattr(level, 'curriculum_system', None)
+        if cs_obj is None:
+            cs_obj = CurriculumSystem.query.filter_by(id=level.curriculum_system_id).first()
+
     subj = Subject(
         tag=data['tag'],
         name=data['name'],
         level_id=level.id,
         sublevel_id=sublevel_id,
-        curriculum_system=data.get('curriculum_system', level.curriculum_system),
+        curriculum_system=cs_obj.id if cs_obj else None,
     )
+
     db.session.add(subj)
     db.session.commit()
     return jsonify({'success': True, 'data': subj.to_dict()}), 201
@@ -218,7 +236,11 @@ def update_subject(subject_id):
         subj.tag = data['tag']
 
     if data.get('curriculum_system'):
-        subj.curriculum_system = data['curriculum_system']
+        cs_obj = _resolve_curriculum_system(data['curriculum_system'])
+        if not cs_obj:
+            return jsonify({'success': False, 'error': 'Invalid curriculum_system.'}), 400
+        subj.curriculum_system = cs_obj.id
+
 
     # Allow updating sublevel without changing level if client sends it
     if data.get('sublevel_id') is not None and data.get('level_id') is None:

@@ -13,7 +13,7 @@ class Subject(db.Model):
     name = db.Column(db.String(150), nullable=False)              # 'Physics'
     level_id = db.Column(db.Integer, db.ForeignKey('levels.id'), nullable=False)
     sublevel_id = db.Column(db.Integer, db.ForeignKey('sublevels.id'), nullable=True)
-    curriculum_system = db.Column(db.String(10), nullable=False, default='844')  # '844' | 'CBC'
+    curriculum_system = db.Column(db.Integer, db.ForeignKey('curriculum_system.id'), nullable=True,)  
     is_active = db.Column(db.Boolean, default=True)
 
     # Relationships
@@ -40,7 +40,8 @@ class Subject(db.Model):
             'level_name': self.level.name if self.level else None,
             'sublevel_id': self.sublevel_id,
             'sublevel_name': self.sublevel.name if self.sublevel else None,
-            'curriculum_system': self.curriculum_system,
+            'curriculum_system': self.curriculum_system_obj.name if self.curriculum_system_obj else None,
+            'curriculum_system_id':self.curriculum_system,
         }
         if include_topics:
             d['topics'] = [t.to_dict() for t in self.topics.order_by('id')]
