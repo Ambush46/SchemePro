@@ -42,7 +42,7 @@ def downgrade():
     with op.batch_alter_table('levels', schema=None) as batch_op:
         # STEP A: Drop the foreign key constraint FIRST
         # If it still throws an error, comment out this drop_constraint line entirely
-        batch_op.drop_constraint('fk_levels_curriculum_system_id', type_='foreignkey')
+        # batch_op.drop_constraint('fk_levels_curriculum_system_id', type_='foreignkey')
         
         # STEP B: Drop the new column
         batch_op.drop_column('curriculum_system_id')
