@@ -15,10 +15,24 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from sqlalchemy.exc import OperationalError
 import os
+from sqlalchemy import MetaData
+
+# Define how indexes and constraints should be named automatically
+convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+
+# Pass the convention to SQLAlchemy metadata
+
+
 
 load_dotenv()
-
-db = SQLAlchemy()
+metadata = MetaData(naming_convention=convention)
+db = SQLAlchemy(metadata=metadata)
 login_manager = LoginManager()
 bcrypt = Bcrypt()
 migrate = Migrate()

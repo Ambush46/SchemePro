@@ -15,6 +15,45 @@ api_bp = Blueprint('api', __name__)
 
 
 # ── HELPERS ────────────────────────────────────────────────────────
+def _resolve_curriculum_system(curriculum_system):
+    """Resolve a curriculum system identifier.
+
+    Accepts either:
+      - an integer id (or a string convertible to int)
+      - a tag/name string (matched against CurriculumSystem.tag)
+
+    Returns:
+      - CurriculumSystem instance if found
+      - None otherwise
+    """
+    if curriculum_system is None:
+        return None
+
+    # If it's already an int, treat as PK.
+    if isinstance(curriculum_system, int):
+        return db.session.get(CurriculumSystem, curriculum_system)
+
+    # If it's a digit string, treat as PK.
+    if isinstance(curriculum_system, str):
+        try:
+            # search as a string first
+            return CurriculumSystem.query.filter_by(name=curriculum_system.strip()).first()
+        except ValueError:
+            pass  # Not an name, will try as tag next
+        s = curriculum_system.strip()
+        if not s:
+            return None
+        if s.isdigit():
+            return db.session.get(CurriculumSystem, int(s))
+        return CurriculumSystem.query.filter_by(tag=s).first()
+
+    # Fallback: try coercing to int
+    try:
+        return db.session.get(CurriculumSystem, int(curriculum_system))
+    except (TypeError, ValueError):
+        return None
+
+
 def _require_admin():
     if not current_user.is_authenticated or not current_user.is_admin():
         return jsonify({'success': False, 'error': 'Admin access required.'}), 403
@@ -146,7 +185,7 @@ def get_subjects():
     if sublevel_id:
         q = q.filter_by(sublevel_id=sublevel_id)
 
-    # Resolve curriculum_system tag -> FK id
+    # Resolve curriculum_system tag -> FK idz
     if curriculum_system:
         cs_obj = _resolve_curriculum_system(curriculum_system)
         if not cs_obj:
