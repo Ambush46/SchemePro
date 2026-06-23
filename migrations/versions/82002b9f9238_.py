@@ -49,7 +49,8 @@ def downgrade():
         
         # STEP C: Add the old column back as nullable=True first to avoid SQLite constraints crashing,
         # OR comment it out if you don't actually need the old column data right now.
-        batch_op.add_column(sa.Column('curriculum_system', sa.VARCHAR(length=10), nullable=True))
+        #batch_op.add_column(sa.Column('curriculum_system', sa.VARCHAR(length=10), nullable=True))
+        pass
 
     # 3. Recreate the old table last
     op.create_table('education_system',
