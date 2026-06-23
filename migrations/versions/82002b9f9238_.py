@@ -45,7 +45,7 @@ def downgrade():
         # batch_op.drop_constraint('fk_levels_curriculum_system_id', type_='foreignkey')
         
         # STEP B: Drop the new column
-        batch_op.drop_column('curriculum_system_id')
+        #batch_op.drop_column('curriculum_system_id')
         
         # STEP C: Add the old column back as nullable=True first to avoid SQLite constraints crashing,
         # OR comment it out if you don't actually need the old column data right now.
